@@ -3,6 +3,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from torchsummary import summary
 
 from models.stixel_convnext import StixelNExT
 from losses.stixel_loss import StixelLoss
@@ -68,26 +69,26 @@ def main():
     num_epochs = 5
     save_model = False
     load_weights = False
-    explore_data = False
+    explore_data = True
     training = False
     # Paths
     training_data_path = "training_data.csv"
     validation_data_path = "validation_data.csv"
 
     # Load data
-    test_data = MultiCutStixelData(validation_data_path, transforming, target_transforming)
-    test_dataloader = DataLoader(test_data, batch_size=batch_size)
+    test_data = MultiCutStixelData(validation_data_path, transform=transforming, target_transform=target_transforming)
+    test_dataloader = DataLoader(test_data, batch_size=batch_size, shuffle=True, num_workers=batch_size)
     # training_data = MultiCutStixelData(training_data_path, transforming, target_transforming)
     # training_dataloader = DataLoader(training_data, batch_size=batch_size)
 
     # Explore data
     if explore_data:
         test_features, test_labels = next(iter(test_dataloader))
-        show_data(test_features, test_labels, idx=1)
+        show_data(test_features, test_labels, idx=-1)
 
     # Define Model
     model = StixelNExT().to(device)
-    print(model)
+    summary(model, (3, 224, 224))
     # Load Weights
     if load_weights:
         model.load_state_dict(torch.load("saved_models/StixelNExT.pth"))
@@ -101,8 +102,7 @@ def main():
         for epoch in range(num_epochs):
             print(f"Epoch {epoch + 1}\n-------------------------------")
             train(test_dataloader, model, loss_fn, optimizer, epoch)
-            test(test_dataloader, model, loss_fn)
-
+            # test(test_dataloader, model, loss_fn)
     # Save model
     if save_model:
         torch.save(model.state_dict(), "saved_models/StixelNExT.pth")

@@ -12,7 +12,7 @@ class MultiCutStixelData(Dataset):
     # 1. Implement __init()__
     def __init__(self, annotations_file, data_dir="data", transform=None, target_transform=None):
         self.data_dir = data_dir
-        self.annotations = pd.read_csv(os.path.join(self.data_dir, annotations_file))
+        self.annotations = pd.read_csv(os.path.join(data_dir, annotations_file))
         self.img_map = self.__create_image_reference_map()
         self.transform = transform
         self.target_transform = target_transform
@@ -30,11 +30,11 @@ class MultiCutStixelData(Dataset):
             image = self.transform(image)
         if self.target_transform:
             label = self.target_transform(label)
-        # dtype needs to be like the NN layer like .to(torch.float32)
+        # data type needs to be like the NN layer like .to(torch.float32)
         return image, label
 
     def __create_image_reference_map(self):
-        # Seperate the path col
+        # Separate the path col
         image_map = self.annotations.loc[:, 'img_path'].tolist()
         # drop all duplicates and add a label array
         image_map = list(dict.fromkeys(image_map))
