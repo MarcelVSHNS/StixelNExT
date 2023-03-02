@@ -3,7 +3,7 @@ import os
 import pandas as pd
 from torch.utils.data import Dataset
 from torchvision.transforms import ToTensor
-from PIL import Image
+from torchvision.io import read_image, ImageReadMode
 import numpy as np
 
 
@@ -24,7 +24,7 @@ class MultiCutStixelData(Dataset):
     # 3. Implement __getitem()__
     def __getitem__(self, idx):
         img_path = os.path.join(self.data_dir, self.img_map[idx])
-        image = Image.open(img_path)
+        image = read_image(img_path, ImageReadMode.RGB).to(torch.float32)
         label = self.annotations.groupby('img_path').get_group(self.img_map[idx])
         if self.transform:
             image = self.transform(image)
