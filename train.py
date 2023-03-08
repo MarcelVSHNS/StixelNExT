@@ -1,5 +1,6 @@
 import torch
 import wandb
+import pandas as pd
 from torch.utils.data import DataLoader
 from torchsummary import summary
 
@@ -16,24 +17,24 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 def main():
     # Settings
-    batch_size = 8
+    batch_size = 4
     num_epochs = 5
-    save_model = True
+    save_model = False
     load_weights = False
     explore_data = False
     test_loss = False
     training = True        # False?
     inspect_model = True
-    logging = True
+    logging = False
     # Paths
     training_data_path = "training_data.csv"
     validation_data_path = "validation_data.csv"
 
     # Load data
     validation_data = MultiCutStixelData(validation_data_path, target_transform=target_transforming)
-    val_dataloader = DataLoader(validation_data, batch_size=batch_size, shuffle=True, num_workers=batch_size)
+    val_dataloader = DataLoader(validation_data, batch_size=batch_size, shuffle=True)
     training_data = MultiCutStixelData(training_data_path, target_transform=target_transforming)
-    train_dataloader = DataLoader(training_data, batch_size=batch_size)
+    train_dataloader = DataLoader(training_data, batch_size=batch_size, num_workers=4, pin_memory=True)
 
     # Explore data
     test_features, test_labels = next(iter(val_dataloader))
@@ -48,7 +49,7 @@ def main():
     # Loss function
     loss_fn = StixelLoss()
     # Optimizer definition
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
 
     # Inspect model
     if inspect_model:
@@ -64,7 +65,12 @@ def main():
         data = test_features.to(device)
         output = model(data)
         target = test_labels.to(device)
-        print(loss_fn(output, target))
+        print(loss_fn(output[0], target[0]))
+        if True:
+            df_output = pd.DataFrame(output[0].cpu().detach().numpy())
+            df_target = pd.DataFrame(test_labels[0].numpy())
+            df_output.to_csv("Prediction.csv", index=False)
+            df_target.to_csv("Target.csv", index=False)
 
     # Training
     if training:

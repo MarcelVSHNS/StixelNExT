@@ -5,40 +5,35 @@ from torch.utils.data import Dataset
 from torchvision.transforms import ToTensor
 from torchvision.io import read_image, ImageReadMode
 import numpy as np
+import datetime
 
 
 # 0. Implementation of a Dataset
 class MultiCutStixelData(Dataset):
     # 1. Implement __init()__
-    def __init__(self, annotations_file, data_dir="data", transform=None, target_transform=None):
+    def __init__(self, annotations_file, data_dir="data", annotation_dir="targets", transform=None, target_transform=None):
         self.data_dir = data_dir
-        self.annotations = pd.read_csv(os.path.join(data_dir, annotations_file))
-        self.img_map = self.__create_image_reference_map()
+        # pd.read_csv(os.path.join(data_dir, annotations_file))
+        self.sample_map = pd.read_csv(os.path.join(data_dir, annotations_file), header=None).values.reshape(-1,).tolist()
+        self.annotation_dir = os.path.join(data_dir, self.sample_map[-1].split("/")[0], annotation_dir)
         self.transform = transform
         self.target_transform = target_transform
 
     # 2. Implement __len()__
     def __len__(self):
-        return len(self.img_map)
+        return len(self.sample_map)
 
     # 3. Implement __getitem()__
     def __getitem__(self, idx):
-        img_path = os.path.join(self.data_dir, self.img_map[idx])
+        img_path = os.path.join(self.data_dir, self.sample_map[idx] + ".png")
         image = read_image(img_path, ImageReadMode.RGB).to(torch.float32)
-        label = self.annotations.groupby('img_path').get_group(self.img_map[idx])
+        label = pd.read_csv(os.path.join(self.annotation_dir, os.path.basename(self.sample_map[idx]) + ".csv"))
         if self.transform:
             image = self.transform(image)
         if self.target_transform:
             label = self.target_transform(label)
         # data type needs to be like the NN layer like .to(torch.float32)
         return image, label
-
-    def __create_image_reference_map(self):
-        # Separate the path col
-        image_map = self.annotations.loc[:, 'img_path'].tolist()
-        # drop all duplicates and add a label array
-        image_map = list(dict.fromkeys(image_map))
-        return image_map
 
 
 def transforming(x_features):
@@ -52,6 +47,6 @@ def target_transforming(y_target, grid_step=8):
     coordinates = coordinates/(grid_step, grid_step, 1)
     mtx = np.zeros((160, 240))
     for point in coordinates.astype(int):
-        mtx[point[1]][point[0]] = point[2]
+        mtx[point[1]][point[0]] = 1
     y_target_label = torch.from_numpy(mtx)
     return y_target_label
