@@ -11,11 +11,10 @@ import datetime
 # 0. Implementation of a Dataset
 class MultiCutStixelData(Dataset):
     # 1. Implement __init()__
-    def __init__(self, annotations_file, data_dir="data", annotation_dir="targets", transform=None, target_transform=None):
+    def __init__(self, annotations_file, data_dir, annotation_dir="targets", transform=None, target_transform=None):
         self.data_dir = data_dir
-        # pd.read_csv(os.path.join(data_dir, annotations_file))
-        self.sample_map = pd.read_csv(os.path.join(data_dir, annotations_file), header=None).values.reshape(-1,).tolist()
-        self.annotation_dir = os.path.join(data_dir, self.sample_map[-1].split("/")[0], annotation_dir)
+        self.annotation_dir = os.path.join(data_dir, annotation_dir)
+        self.sample_map = pd.read_csv(os.path.join(data_dir.split('/')[0], annotations_file), header=None).values.reshape(-1,).tolist()
         self.transform = transform
         self.target_transform = target_transform
 

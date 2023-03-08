@@ -31,9 +31,9 @@ def main():
     validation_data_path = "validation_data.csv"
 
     # Load data
-    validation_data = MultiCutStixelData(validation_data_path, target_transform=target_transforming)
+    validation_data = MultiCutStixelData(validation_data_path, data_dir="data/validation", target_transform=target_transforming)
     val_dataloader = DataLoader(validation_data, batch_size=batch_size, shuffle=True)
-    training_data = MultiCutStixelData(training_data_path, target_transform=target_transforming)
+    training_data = MultiCutStixelData(training_data_path, data_dir="data/training", target_transform=target_transforming)
     train_dataloader = DataLoader(training_data, batch_size=batch_size, num_workers=4, pin_memory=True)
 
     # Explore data
