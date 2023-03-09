@@ -17,24 +17,24 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 def main():
     # Settings
-    batch_size = 4
-    num_epochs = 5
-    save_model = False
+    batch_size = 32
+    num_epochs = 10
+    save_model = True
     load_weights = False
     explore_data = False
     test_loss = False
     training = True        # False?
     inspect_model = True
-    logging = False
+    logging = True
     # Paths
     training_data_path = "training_data.csv"
     validation_data_path = "validation_data.csv"
 
     # Load data
     validation_data = MultiCutStixelData(validation_data_path, data_dir="data/validation", target_transform=target_transforming)
-    val_dataloader = DataLoader(validation_data, batch_size=batch_size, shuffle=True)
+    val_dataloader = DataLoader(validation_data, batch_size=batch_size, shuffle=True, num_workers=5, pin_memory=True)
     training_data = MultiCutStixelData(training_data_path, data_dir="data/training", target_transform=target_transforming)
-    train_dataloader = DataLoader(training_data, batch_size=batch_size, num_workers=4, pin_memory=True)
+    train_dataloader = DataLoader(training_data, batch_size=batch_size, num_workers=20, pin_memory=True)
 
     # Explore data
     test_features, test_labels = next(iter(val_dataloader))
@@ -49,7 +49,7 @@ def main():
     # Loss function
     loss_fn = StixelLoss()
     # Optimizer definition
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
     # Inspect model
     if inspect_model:
