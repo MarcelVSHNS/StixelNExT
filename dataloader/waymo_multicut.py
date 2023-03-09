@@ -47,5 +47,5 @@ def target_transforming(y_target, grid_step=8):
     mtx = np.zeros((160, 240))
     for point in coordinates.astype(int):
         mtx[point[1]][point[0]] = 1
-    y_target_label = torch.from_numpy(mtx)
+    y_target_label = torch.from_numpy(mtx).to(torch.float32)
     return y_target_label

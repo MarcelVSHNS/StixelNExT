@@ -154,3 +154,6 @@ cython_debug/
 data/
 saved_models/
 wandb/
+config.yaml
+Prediction.csv
+Target.csv

@@ -8,7 +8,7 @@ class StixelLoss(nn.Module):
         """Intersection over Union"""
         super().__init__()
         self.threshold = threshold
-        self.kl_loss = nn.L1Loss(reduction='sum')
+        self.kl_loss = nn.BCELoss(reduction='mean')
         # KLDivLoss(reduction="batchmean")
 
     def forward(self, inputs, targets):
