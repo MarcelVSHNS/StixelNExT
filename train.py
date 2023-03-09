@@ -84,6 +84,7 @@ def main():
                                       }
                                       )
             wandb_logger.watch(model)
+            print(f'WandB Logger name: {wandb_logger.name}')
         else:
             wandb_logger = None
         for epoch in range(num_epochs):
@@ -94,7 +95,7 @@ def main():
                      device=device)
             # Save model
             if save_model:
-                weights_path = "saved_models/StixelNExT_epoch-" + str(epoch) + "_loss-" + str(eval_loss) + ".pth"
+                weights_path = f"saved_models/StixelNExT_{wandb_logger.name}_epoch-{epoch}_loss-{eval_loss}.pth"
                 torch.save(model.state_dict(), weights_path)
                 print("Saved PyTorch Model State to " + weights_path)
 
