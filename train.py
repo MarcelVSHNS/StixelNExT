@@ -93,7 +93,7 @@ def main():
             train_one_epoch(train_dataloader, model, loss_fn, optimizer,
                             device=device, writer=wandb_logger)
             eval_loss = evaluate(val_dataloader, model, loss_fn,
-                                 device=device)
+                                 device=device, writer=wandb_logger)
             # Save model
             if config['weights']['save']:
                 if os.path.isdir('saved_models'):

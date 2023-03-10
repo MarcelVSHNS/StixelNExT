@@ -31,7 +31,7 @@ def train_one_epoch(dataloader, model, loss_fn, optimizer, device, writer=None):
 
 
 # Validation Function
-def evaluate(dataloader, model, loss_fn, device):
+def evaluate(dataloader, model, loss_fn, device, writer=None):
     num_batches = len(dataloader)
     model.eval()
     test_loss = 0
@@ -43,4 +43,7 @@ def evaluate(dataloader, model, loss_fn, device):
             test_loss += loss_fn(outputs, targets)
     test_loss /= num_batches
     print(f"Test Error: \n Avg loss: {test_loss:>8f} \n")
+    if writer:
+        # Log the loss by adding scalars
+        writer.log({"Test Error": test_loss})
     return test_loss
