@@ -12,5 +12,5 @@ class StixelLoss(nn.Module):
 
     def forward(self, inputs, targets):
         # inputs = torch.where(inputs < self.threshold, 0, 1)
-        loss_1 = self.kl_loss(inputs, targets)
+        loss_1 = self.kl_loss(inputs, targets.squeeze())
         return loss_1

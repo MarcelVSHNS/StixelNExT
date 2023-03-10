@@ -68,7 +68,7 @@ def main():
         data = test_features.to(device)
         output = model(data)
         target = test_labels.to(device)
-        print(loss_fn(output[0], target[0]))
+        print(loss_fn(output, target))
         # df_output = pd.DataFrame(output[0].cpu().detach().numpy())
         # df_target = pd.DataFrame(test_labels[0].numpy())
         # df_output.to_csv("Prediction.csv", index=False)

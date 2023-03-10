@@ -1,9 +1,9 @@
-batch_size: 1
+batch_size: 4
 num_epochs: 10
 learning_rate: 0.001
-training: True
-explore_data: False
-test_loss: False
+training: False
+explore_data: True
+test_loss: True
 inspect_model: True
 resources:
   train_worker: 4

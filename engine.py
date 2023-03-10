@@ -13,7 +13,7 @@ def train_one_epoch(dataloader, model, loss_fn, optimizer, device, writer=None):
         # Compute prediction a prediction
         outputs = model(samples)
         # Compute the error (loss) of that prediction [loss_fn(prediction, target)]
-        loss = loss_fn(outputs, targets.squeeze())
+        loss = loss_fn(outputs, targets)
 
         # Backpropagation strategy/ optimization "zero_grad()"
         optimizer.zero_grad()
@@ -40,7 +40,7 @@ def evaluate(dataloader, model, loss_fn, device):
             samples = samples.to(device)
             targets = targets.to(device)
             outputs = model(samples)
-            test_loss += loss_fn(outputs, targets.squeeze())
+            test_loss += loss_fn(outputs, targets)
     test_loss /= num_batches
     print(f"Test Error: \n Avg loss: {test_loss:>8f} \n")
     return test_loss
