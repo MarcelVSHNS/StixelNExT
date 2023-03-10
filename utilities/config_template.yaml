@@ -1,12 +1,19 @@
-batch_size: 4
-num_epochs: 10
-train_worker: 4
-val_worker: 2
+batch_size: 16
+num_epochs: 25
+learning_rate: 0.001
 training: True
-explore_data: True
-save_model: False
-load_weights: True
-weight_file: StixelNExT_legendary-mountain-17_epoch-6_loss-56299.47203177295.pth
+explore_data: False
 test_loss: False
 inspect_model: True
-logging: False
+resources:
+  train_worker: 10
+  val_worker: 5
+weights:
+  load: False
+  save: True
+  file: StixelNExT_legendary-mountain-17_epoch-6_loss-56299.47203177295.pth
+logging:
+  activate: True
+  project: Stixel-Multicut
+  dataset: Multicut_data
+  architecture: ConvNeXt
