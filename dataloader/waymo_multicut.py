@@ -25,7 +25,7 @@ class MultiCutStixelData(Dataset):
     # 3. Implement __getitem()__
     def __getitem__(self, idx):
         img_path = os.path.join(self.data_dir, self.sample_map[idx] + ".png")
-        image = read_image(img_path, ImageReadMode.RGB).to(torch.float32)
+        image = read_image(img_path, ImageReadMode.RGB)
         label = pd.read_csv(os.path.join(self.annotation_dir, os.path.basename(self.sample_map[idx]) + ".csv"))
         if self.transform:
             image = self.transform(image)
@@ -36,7 +36,7 @@ class MultiCutStixelData(Dataset):
 
 
 def transforming(x_features):
-    return ToTensor()(x_features).unsqueeze_(0)
+    return x_features.to(torch.float32)
 
 
 # TODO: create a tensor of 160 x 240
@@ -48,4 +48,5 @@ def target_transforming(y_target, grid_step=8):
     for point in coordinates.astype(int):
         mtx[point[1]][point[0]] = 1
     y_target_label = torch.from_numpy(mtx).to(torch.float32)
-    return y_target_label
+    label = y_target_label.squeeze()
+    return label

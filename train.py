@@ -3,6 +3,7 @@ import wandb
 import yaml
 from torch.utils.data import DataLoader
 from torchsummary import summary
+from pathlib import Path
 
 from models.ConvNeXt_implementation import ConvNeXt
 from losses.stixel_loss import StixelLoss
@@ -24,12 +25,17 @@ def main():
     validation_data_path = "validation_data.csv"
 
     # Load data
-    validation_data = MultiCutStixelData(validation_data_path, data_dir="data/validation", target_transform=target_transforming)
-    val_dataloader = DataLoader(validation_data, batch_size=config['batch_size'],
-                                num_workers=config['val_worker'], pin_memory=True, shuffle=True)
-    training_data = MultiCutStixelData(training_data_path, data_dir="data/training", target_transform=target_transforming)
+    training_data = MultiCutStixelData(training_data_path, data_dir="data/training",
+                                       transform=transforming,
+                                       target_transform=target_transforming)
     train_dataloader = DataLoader(training_data, batch_size=config['batch_size'],
                                   num_workers=config['train_worker'], pin_memory=True)
+
+    validation_data = MultiCutStixelData(validation_data_path, data_dir="data/validation",
+                                         transform=transforming,
+                                         target_transform=target_transforming)
+    val_dataloader = DataLoader(validation_data, batch_size=config['batch_size'],
+                                num_workers=config['val_worker'], pin_memory=True, shuffle=True)
 
     # Explore data
     test_features, test_labels = next(iter(val_dataloader))
@@ -46,7 +52,7 @@ def main():
     # Loss function
     loss_fn = StixelLoss()
     # Optimizer definition
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    optimizer = torch.optim.Adam(model.parameters(), lr=config['learning_rate'])
 
     # Inspect model
     if config['inspect_model']:
@@ -72,11 +78,11 @@ def main():
     if config['training']:
         if config['logging']:
             wandb_logger = wandb.init(project="Stixel-Multicut",
-                                      config={
-                                          "learning_rate": 0.001,
+                                      config = {
+                                          "learning_rate": config['learning_rate'],
                                           "architecture": "ConvNeXt",
                                           "dataset": "Stixel Multicut",
-                                          "epochs": 10,
+                                          "epochs": config['num_epochs'],
                                       }
                                       )
             wandb_logger.watch(model)
@@ -87,9 +93,10 @@ def main():
             train_one_epoch(train_dataloader, model, loss_fn, optimizer,
                             device=device, writer=wandb_logger)
             eval_loss = evaluate(val_dataloader, model, loss_fn,
-                     device=device)
+                                 device=device)
             # Save model
             if config['save_model']:
+                Path('/saved_models').mkdir(parents=True, exist_ok=True)
                 weights_path = f"saved_models/StixelNExT_{wandb_logger.name}_epoch-{epoch}_loss-{eval_loss}.pth"
                 torch.save(model.state_dict(), weights_path)
                 print("Saved PyTorch Model State to " + weights_path)

@@ -151,7 +151,10 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-data/
+data/training
+data/validation
+data/validation_data.csv
+data/training_data.csv
 saved_models/
 wandb/
 config.yaml

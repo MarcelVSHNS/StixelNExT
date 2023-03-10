@@ -1,11 +1,12 @@
-batch_size: 4
+batch_size: 1
 num_epochs: 10
+learning_rate: 0.001
 train_worker: 4
 val_worker: 2
 training: True
-explore_data: True
-save_model: False
-load_weights: True
+explore_data: False
+save_model: True
+load_weights: False
 weight_file: StixelNExT_legendary-mountain-17_epoch-6_loss-56299.47203177295.pth
 test_loss: False
 inspect_model: True
