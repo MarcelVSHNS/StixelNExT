@@ -8,6 +8,7 @@ inspect_model: True
 resources:
   train_worker: 10
   val_worker: 5
+  test_worker: 2
 weights:
   load: False
   save: True

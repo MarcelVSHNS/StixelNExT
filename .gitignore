@@ -156,8 +156,10 @@ cython_debug/
 
 data/training
 data/validation
+data/testing
 data/validation_data.csv
 data/training_data.csv
+data/testing_data.csv
 saved_models/
 wandb/
 config.yaml

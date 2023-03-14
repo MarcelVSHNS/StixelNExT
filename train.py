@@ -46,9 +46,13 @@ def main():
     model = ConvNeXt(depths=[3]).to(device)
     # Load Weights
     if config['weights']['load']:
-        weights_file = config['weight']['file']
+        weights_file = config['weights']['file']
         model.load_state_dict(torch.load("saved_models/" + weights_file))
         print(f'Weights loaded from: {weights_file}')
+        if config['explore_data']:
+            data = test_features.to(device)
+            output = model(data)
+            show_data(data, output, idx=-1)
     # Loss function
     loss_fn = StixelLoss()
     # Optimizer definition
@@ -69,10 +73,6 @@ def main():
         output = model(data)
         target = test_labels.to(device)
         print(loss_fn(output, target))
-        # df_output = pd.DataFrame(output[0].cpu().detach().numpy())
-        # df_target = pd.DataFrame(test_labels[0].numpy())
-        # df_output.to_csv("Prediction.csv", index=False)
-        # df_target.to_csv("Target.csv", index=False)
 
     # Training
     if config['training']:
@@ -83,7 +83,8 @@ def main():
                                           "architecture": config['logging']['architecture'],
                                           "dataset": config['logging']['dataset'],
                                           "epochs": config['num_epochs'],
-                                      }
+                                      },
+                                      tags=["training", "evaluation"]
                                       )
             wandb_logger.watch(model)
         else:

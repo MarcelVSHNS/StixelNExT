@@ -1,16 +1,53 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import io
+from PIL import Image
 
 
-def show_data(x_feature, y_target, idx=0, grid_step=8):
+def show_meta_data(x_feature, y_target, idx=0):
     print(f"Feature batch shape: {x_feature.size()}")
     print(f"Labels batch shape: {y_target.size()}")
     print(x_feature[idx].dtype)
-    img = x_feature[idx].squeeze().to(torch.uint8).permute(1, 2, 0)
-    label = y_target[idx]
-    # Scatter
-    pts_mtx = label.numpy()
+
+
+def show_data_pair(img_pair):
+    fig = plt.figure(figsize=(8, 12))
+    fig.add_axes([0.06, 0.00, 0.9, 0.95])
+    plt.imshow(img_pair)
+    plt.show()
+
+
+def create_sample_comparison(x_feature, y_prediction, y_target, idx=-1, t_infer=0.0, threshold=0.3):
+    img = x_feature[idx].cpu().detach()
+    pred_mtx = y_prediction[idx].cpu().detach().numpy()
+    target_mtx = y_target[idx].cpu().detach().numpy()
+
+    prediction_img = __draw_stixel_on_image(img, pred_mtx, threshold=threshold,
+                                          title=f'Prediction in {t_infer/1000000} ms & Threshold of ')
+    target_img = __draw_stixel_on_image(img, target_mtx, title='Ground Truth ')
+
+    img_pair = __vertical_img_stack(prediction_img, target_img)
+    return img_pair
+
+
+def __horizontal_img_stack(im1, im2):
+    dst = Image.new('RGB', (im1.width + im2.width, im1.height))
+    dst.paste(im1, (0, 0))
+    dst.paste(im2, (im1.width, 0))
+    return dst
+
+
+def __vertical_img_stack(im1, im2):
+    dst = Image.new('RGB', (im1.width, im1.height + im2.height))
+    dst.paste(im1, (0, 0))
+    dst.paste(im2, (0, im1.height))
+    return dst
+
+
+def __draw_stixel_on_image(img, stxl_mtx, threshold=1.0, grid_step=8, title=""):
+    img = img.squeeze().to(torch.uint8).permute(1, 2, 0)
+    pts_mtx = stxl_mtx
     xs = []
     ys = []
     cs = []
@@ -18,29 +55,23 @@ def show_data(x_feature, y_target, idx=0, grid_step=8):
     for i in range(pts_mtx.shape[0]):
         # Col
         for j in range(pts_mtx.shape[1]):
-            if pts_mtx[i][j] != 0:
-                xs.append(j*grid_step)
-                ys.append(i*grid_step)
-                cs.append(WAYMO_SEG_COLOR_MAP[pts_mtx[i][j]])
+            if pts_mtx[i][j] >= threshold:
+                xs.append(j * grid_step)
+                ys.append(i * grid_step)
+                if threshold != 1:
+                    cs.append([255, 139, 254])
+                else:
+                    cs.append([15, 223, 61])  # WAYMO_SEG_COLOR_MAP[pts_mtx[i][j]]
     plt.figure(figsize=(20, 12))
-    plt.scatter(xs, ys, c=np.array(cs)/255, s=8.0, edgecolors="none")
+    plt.title(f'{title} ({int(threshold*100)} %)')
+    plt.scatter(xs, ys, c=np.array(cs) / 255, s=8.0, edgecolors="none")
     plt.imshow(img)
-    plt.show()
-    print(f"Label: {label}")
-
-
-def rgba(r, r_max=50):
-    """Generates a color based on range.
-  Args:
-    r: the range value of a given point.
-    r_max:
-  Returns:
-    The color for a given range
-  """
-    c = plt.get_cmap('plasma')((r % r_max) / r_max)
-    c = list(c)
-    c[-1] = 0.7  # alpha
-    return c
+    img_buf = io.BytesIO()
+    plt.savefig(img_buf, format='png', bbox_inches='tight')
+    stxl_img = Image.open(img_buf)
+    plt.close()
+    plt.clf()
+    return stxl_img
 
 
 WAYMO_SEGMENTATION = {
