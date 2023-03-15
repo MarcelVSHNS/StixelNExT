@@ -12,20 +12,21 @@ def show_meta_data(x_feature, y_target, idx=0):
 
 
 def show_data_pair(img_pair):
-    fig = plt.figure(figsize=(8, 12))
-    fig.add_axes([0.06, 0.00, 0.9, 0.95])
+    fig = plt.figure(figsize=(8, 11))
+    fig.add_axes([0.06, 0.02, 0.9, 0.95])
     plt.imshow(img_pair)
     plt.show()
 
 
 def create_sample_comparison(x_feature, y_prediction, y_target, idx=-1, t_infer=0.0, threshold=0.3):
-    img = x_feature[idx].cpu().detach()
-    pred_mtx = y_prediction[idx].cpu().detach().numpy()
-    target_mtx = y_target[idx].cpu().detach().numpy()
+    if y_prediction.shape[0] == 160:
+        y_prediction = torch.unsqueeze(y_prediction, 0)
+    pred_mtx = y_prediction[idx].numpy()
+    target_mtx = y_target[idx].numpy()
 
-    prediction_img = __draw_stixel_on_image(img, pred_mtx, threshold=threshold,
+    prediction_img = __draw_stixel_on_image(x_feature[idx], pred_mtx, threshold=threshold,
                                           title=f'Prediction in {t_infer/1000000} ms & Threshold of ')
-    target_img = __draw_stixel_on_image(img, target_mtx, title='Ground Truth ')
+    target_img = __draw_stixel_on_image(x_feature[idx], target_mtx, title='Ground Truth ')
 
     img_pair = __vertical_img_stack(prediction_img, target_img)
     return img_pair
@@ -72,6 +73,23 @@ def __draw_stixel_on_image(img, stxl_mtx, threshold=1.0, grid_step=8, title=""):
     plt.close()
     plt.clf()
     return stxl_img
+
+
+def plot_roc_curve(fpr, tpr, thres_idx=None, display=False):
+    plt.plot(fpr, tpr)
+    if thres_idx:
+        plt.plot(fpr[thres_idx], tpr[thres_idx], "or")
+    plt.ylabel('True Positive Rate')
+    plt.xlabel('False Positive Rate')
+    if display:
+        plt.show()
+    else:
+        img_buf = io.BytesIO()
+        plt.savefig(img_buf, format='png', bbox_inches='tight')
+        roc_curve_img = Image.open(img_buf)
+        plt.close()
+        plt.clf()
+        return roc_curve_img
 
 
 WAYMO_SEGMENTATION = {
