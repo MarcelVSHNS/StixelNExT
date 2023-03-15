@@ -20,8 +20,7 @@ with open('config.yaml') as yamlfile:
 
 
 def main():
-    # TODO: Adapt the threshold depending on the brightness conditions
-    threshold = 0.4
+    fpr_limit = 0.02
     # Data loading
     testing_data_path = "testing_data.csv"
     testing_data = MultiCutStixelData(testing_data_path, data_dir="data/testing",
@@ -54,9 +53,11 @@ def main():
         test_features = test_features.cpu().detach()
         # ROC
         fpr, tpr, thresholds = roc_curve(output, test_labels.squeeze().to(torch.int))
-        plot_roc_curve(fpr, tpr, thres_idx=find_threshold_index(thresholds, threshold), display=True)
+        idx = find_fpr_index(fpr, fpr_limit)
+        plot_roc_curve(fpr, tpr, thres_idx=idx, display=True)
         # Scatter & Comparison
-        sample_img = create_sample_comparison(test_features, output, test_labels, t_infer=t_infer, threshold=threshold)
+        sample_img = create_sample_comparison(test_features, output, test_labels, t_infer=t_infer,
+                                              threshold=thresholds.numpy()[idx])
         show_data_pair(sample_img)
 
     # Create an export of analysed data incl. samples and ROC curve
@@ -70,7 +71,8 @@ def main():
                                       "architecture": config['logging']['architecture'],
                                       "dataset": config['logging']['dataset'],
                                       "checkpoint": checkpoint,
-                                      "epochs": epochs
+                                      "epochs": epochs,
+                                      "fpr_limit": fpr_limit
                                   },
                                   tags=["metrics", "testing"]
                                   )
@@ -91,13 +93,15 @@ def main():
             if batch_idx % 200 == 0:
                 # Create Image Sample
                 samples = samples.cpu().detach()
+                idx = find_fpr_index(fpr, fpr_limit)
+                threshold = thresholds.numpy()[idx]
                 sample_img = create_sample_comparison(samples, output, targets, t_infer=t_infer,
                                                       threshold=threshold)
                 wandb_image = wandb.Image(sample_img,
                                           caption=f"Batch-ID= {batch_idx}\nTop: Output\nBottom: Target")
                 wandb_logger.log({"Examples": wandb_image})
                 # Create ROC snippet
-                sample_roc = plot_roc_curve(fpr, tpr, thres_idx=find_threshold_index(thresholds, threshold))
+                sample_roc = plot_roc_curve(fpr, tpr, thres_idx=idx)
                 sample_auc = np.round(metrics.auc(fpr, tpr), decimals=3)
                 wandb_roc = wandb.Image(sample_roc,
                                         caption=f"Batch-ID= {batch_idx}\nROC with {threshold}\nAUC: {sample_auc}")
@@ -107,11 +111,16 @@ def main():
         # plot_roc_curve(fpr, tpr, thres_idx=find_threshold_index(thresholds, threshold), display=True)
 
         data = [[x, y] for (x, y) in zip(fpr, tpr)]
-        table = wandb.Table(data=data, columns=["True Positive Rate", "False Positive Rate"])
+        table = wandb.Table(data=data, columns=["False Positive Rate", "True Positive Rate"])
         wandb_logger.log({"ROC curve": wandb.plot.line(table, "True Positive Rate", "False Positive Rate",
                                                        title=f"ROC Curve over {testing_data.__len__()} samples")})
         wandb_logger.log({"AUC": metrics.auc(fpr, tpr)})
 
+
+def find_fpr_index(fpr_array, fpr):
+    fpr_array = fpr_array.numpy()
+    fpr_idx = np.where(fpr_array >= fpr)
+    return fpr_idx[0][0]
 
 def find_threshold_index(thres_array, threshold):
     thres_array = thres_array.numpy().round(decimals=2)
