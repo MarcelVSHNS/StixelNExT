@@ -165,3 +165,5 @@ wandb/
 config.yaml
 Prediction.csv
 Target.csv
+image_export
+data_seg

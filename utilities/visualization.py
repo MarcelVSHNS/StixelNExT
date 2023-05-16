@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import io
 from PIL import Image
+import random
 
 
 def show_meta_data(x_feature, y_target, idx=0):
@@ -46,7 +47,7 @@ def __vertical_img_stack(im1, im2):
     return dst
 
 
-def __draw_stixel_on_image(img, stxl_mtx, threshold=1.0, grid_step=8, title=""):
+def __draw_stixel_on_image(img, stxl_mtx, threshold=1.0, grid_step=8, title="", save_fig=False):
     img = img.squeeze().to(torch.uint8).permute(1, 2, 0)
     pts_mtx = stxl_mtx
     xs = []
@@ -70,6 +71,9 @@ def __draw_stixel_on_image(img, stxl_mtx, threshold=1.0, grid_step=8, title=""):
     img_buf = io.BytesIO()
     plt.savefig(img_buf, format='png', bbox_inches='tight')
     stxl_img = Image.open(img_buf)
+    if save_fig:
+        name = "image_export/" + str(random.randint(100000, 999999)) + ".png"
+        stxl_img.save(name)
     plt.close()
     plt.clf()
     return stxl_img
