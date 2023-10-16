@@ -4,6 +4,7 @@ import yaml
 from torch.utils.data import DataLoader
 from torchsummary import summary
 import os
+import torch.nn as nn
 
 from models.ConvNeXt_implementation import ConvNeXt
 from losses.stixel_loss import StixelLoss
@@ -44,7 +45,8 @@ def main():
         model.load_state_dict(torch.load("saved_models/" + weights_file))
         print(f'Weights loaded from: {weights_file}')
     # Loss function
-    loss_fn = StixelLoss()
+    # loss_fn = StixelLoss()
+    loss_fn = nn.BCELoss()
     # Optimizer definition
     optimizer = torch.optim.Adam(model.parameters(), lr=config['learning_rate'])
 
@@ -70,7 +72,7 @@ def main():
 
     # Inspect model
     if config['inspect_model']:
-        summary(model, (3, 1280, 1920))
+        summary(model, (3, 1200, 1920))
         data = test_features.to(device)
         print("Input shape: " + str(data.shape))
         print("Output shape: " + str(model(data).shape))
