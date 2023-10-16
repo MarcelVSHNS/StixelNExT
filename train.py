@@ -20,8 +20,8 @@ with open('config.yaml') as yamlfile:
 
 def main():
     # Paths
-    training_data_path = "training_data.csv"
-    validation_data_path = "validation_data.csv"
+    training_data_path = "training.csv"
+    validation_data_path = "validation.csv"
 
     # Load data
     training_data = MultiCutStixelData(training_data_path, data_dir="data/training",
@@ -49,7 +49,7 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=config['learning_rate'])
 
     # Initialize Logger
-    if config['logging']:
+    if config['logging']['activate']:
         wandb_logger = wandb.init(project=config['logging']['project'],
                                   config={
                                       "learning_rate": config['learning_rate'],
