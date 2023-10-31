@@ -11,10 +11,12 @@ import datetime
 # 0. Implementation of a Dataset
 class MultiCutStixelData(Dataset):
     # 1. Implement __init()__
-    def __init__(self, annotations_file, data_dir, annotation_dir="targets", transform=None, target_transform=None):
+    def __init__(self, data_dir, annotation_dir="targets", img_dir="", transform=None, target_transform=None):
         self.data_dir = data_dir
-        self.annotation_dir = os.path.join(data_dir, annotation_dir)
-        self.sample_map = pd.read_csv(os.path.join(data_dir.split('/')[0], annotations_file), header=None).values.reshape(-1,).tolist()
+        self.img_path = os.path.join(self.data_dir, img_dir)
+        self.annotation_path = os.path.join(self.data_dir, annotation_dir)
+        filenames = os.listdir(os.path.join(data_dir, img_dir))
+        self.sample_map = [os.path.splitext(filename)[0] for filename in filenames]
         self.transform = transform
         self.target_transform = target_transform
 
@@ -24,9 +26,9 @@ class MultiCutStixelData(Dataset):
 
     # 3. Implement __getitem()__
     def __getitem__(self, idx):
-        img_path = os.path.join(self.data_dir, self.sample_map[idx] + ".png")
-        image = read_image(img_path, ImageReadMode.RGB)
-        label = pd.read_csv(os.path.join(self.annotation_dir, os.path.basename(self.sample_map[idx]) + ".csv"))
+        img_path_full = os.path.join(self.img_path, self.sample_map[idx] + ".png")
+        image = read_image(img_path_full, ImageReadMode.RGB)
+        label = pd.read_csv(os.path.join(self.annotation_path, os.path.basename(self.sample_map[idx]) + ".csv"))
         if self.transform:
             image = self.transform(image)
         if self.target_transform:

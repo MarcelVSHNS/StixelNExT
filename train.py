@@ -20,18 +20,20 @@ with open('config.yaml') as yamlfile:
 
 
 def main():
-    # Paths
-    training_data_path = "training.csv"
-    validation_data_path = "validation.csv"
-
+    annotation = "targets_from_stereo"
+    images = "STEREO_LEFT"
     # Load data
-    training_data = MultiCutStixelData(training_data_path, data_dir="data/training",
+    training_data = MultiCutStixelData(data_dir=config['data_path'] + 'training',
+                                       annotation_dir=annotation,
+                                       img_dir=images,
                                        transform=transforming,
                                        target_transform=target_transforming)
     train_dataloader = DataLoader(training_data, batch_size=config['batch_size'],
                                   num_workers=config['resources']['train_worker'], pin_memory=True)
 
-    validation_data = MultiCutStixelData(validation_data_path, data_dir="data/validation",
+    validation_data = MultiCutStixelData(data_dir=config['data_path']+ 'validation',
+                                         annotation_dir=annotation,
+                                         img_dir=images,
                                          transform=transforming,
                                          target_transform=target_transforming)
     val_dataloader = DataLoader(validation_data, batch_size=config['batch_size'],

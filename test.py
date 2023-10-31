@@ -21,9 +21,13 @@ with open('config.yaml') as yamlfile:
 
 def main():
     fpr_limit = 0.02
+    annotation = "targets_from_lidar"
+    images = "STEREO_LEFT"
     # Data loading
-    testing_data_path = "testing_data.csv"
-    testing_data = MultiCutStixelData(testing_data_path, data_dir="data/testing",
+    testing_data_path = "testing.csv"
+    testing_data = MultiCutStixelData(data_dir=config['data_path'] + 'testing',
+                                      annotation_dir=annotation,
+                                      img_dir=images,
                                       transform=transforming,
                                       target_transform=target_transforming)
     testing_dataloader = DataLoader(testing_data, batch_size=config['batch_size'],
@@ -90,7 +94,7 @@ def main():
             # https://github.com/wandb/wandb/issues/1076
             # wandb_logger.log({"roc": wandb.plot.roc_curve(targets, output)})
 
-            if batch_idx % 200 == 0:
+            if batch_idx % 100 == 0:
                 # Create Image Sample
                 samples = samples.cpu().detach()
                 idx = find_fpr_index(fpr, fpr_limit)

@@ -40,7 +40,7 @@ def evaluate(dataloader, model, loss_fn, device, writer=None):
             samples = samples.to(device)
             targets = targets.to(device)
             outputs = model(samples)
-            test_loss += loss_fn(outputs, targets)
+            test_loss += loss_fn(outputs, targets.squeeze(0))
     test_loss /= num_batches
     print(f"Test Error: \n Avg loss: {test_loss:>8f} \n")
     if writer:
