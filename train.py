@@ -5,11 +5,9 @@ from torch.utils.data import DataLoader
 from torchsummary import summary
 import os
 import torch.nn as nn
-
-from models.ConvNeXt_implementation import ConvNeXt
-from losses.stixel_loss import StixelLoss
+from models.ConvNeXt import ConvNeXt
 from engine import train_one_epoch, evaluate
-from dataloader.waymo_multicut import MultiCutStixelData, transforming, target_transforming
+from dataloader.stixel_multicut import MultiCutStixelData, feature_transforming, target_transforming
 
 
 # 0.1 Get cpu or gpu device for training.
@@ -20,30 +18,26 @@ with open('config.yaml') as yamlfile:
 
 
 def main():
-    annotation = "targets_from_stereo"
-    images = "STEREO_LEFT"
     # Load data
-    training_data = MultiCutStixelData(data_dir=config['data_path'] + 'training',
-                                       annotation_dir=annotation,
-                                       img_dir=images,
-                                       transform=transforming,
+    training_data = MultiCutStixelData(data_dir=config['data_path'],
+                                       phase='training',
+                                       transform=feature_transforming,
                                        target_transform=target_transforming)
     train_dataloader = DataLoader(training_data, batch_size=config['batch_size'],
-                                  num_workers=config['resources']['train_worker'], pin_memory=True)
+                                  num_workers=config['resources']['train_worker'], pin_memory=True, drop_last=True)
 
-    validation_data = MultiCutStixelData(data_dir=config['data_path']+ 'validation',
-                                         annotation_dir=annotation,
-                                         img_dir=images,
-                                         transform=transforming,
+    validation_data = MultiCutStixelData(data_dir=config['data_path'],
+                                         phase='validation',
+                                         transform=feature_transforming,
                                          target_transform=target_transforming)
     val_dataloader = DataLoader(validation_data, batch_size=config['batch_size'],
-                                num_workers=config['resources']['val_worker'], pin_memory=True, shuffle=True)
+                                num_workers=config['resources']['val_worker'], pin_memory=True, shuffle=True, drop_last=True)
 
     # Define Model
     model = ConvNeXt(depths=[3]).to(device)
     # Load Weights
-    if config['weights']['load']:
-        weights_file = config['weights']['file']
+    if config['load_weights']:
+        weights_file = config['weights_file']
         model.load_state_dict(torch.load("saved_models/" + weights_file))
         print(f'Weights loaded from: {weights_file}')
     # Loss function
@@ -57,11 +51,12 @@ def main():
         wandb_logger = wandb.init(project=config['logging']['project'],
                                   config={
                                       "learning_rate": config['learning_rate'],
-                                      "architecture": config['logging']['architecture'],
-                                      "dataset": config['logging']['dataset'],
+                                      "loss_function": type(loss_fn).__name__,
+                                      "architecture": type(model).__name__,
+                                      "dataset": training_data.name,
                                       "epochs": config['num_epochs'],
                                   },
-                                  tags=["training", "evaluation"]
+                                  tags=["training"]
                                   )
         wandb_logger.watch(model)
     else:
@@ -74,7 +69,9 @@ def main():
 
     # Inspect model
     if config['inspect_model']:
-        summary(model, (3, 1200, 1920))
+        summary(model, (training_data.img_size['channels'],
+                        training_data.img_size['height'],
+                        training_data.img_size['width']))
         data = test_features.to(device)
         print("Input shape: " + str(data.shape))
         print("Output shape: " + str(model(data).shape))
@@ -97,7 +94,7 @@ def main():
             eval_loss = evaluate(val_dataloader, model, loss_fn,
                                  device=device, writer=wandb_logger)
             # Save model
-            if config['weights']['save']:
+            if config['logging']['activate']:
                 if os.path.isdir('saved_models'):
                     weights_path = f"saved_models/StixelNExT_{wandb_logger.name}_epoch-{epoch}_loss-{eval_loss}.pth"
                     torch.save(model.state_dict(), weights_path)

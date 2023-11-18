@@ -7,8 +7,8 @@ from torchmetrics.classification import BinaryROC
 from torch.utils.data import DataLoader
 from sklearn import metrics
 
-from models.ConvNeXt_implementation import ConvNeXt
-from dataloader.waymo_multicut import MultiCutStixelData, transforming, target_transforming
+from models.ConvNeXt import ConvNeXt
+from dataloader.stixel_multicut import MultiCutStixelData, feature_transforming, target_transforming
 from utilities.visualization import create_sample_comparison, show_data_pair, plot_roc_curve
 
 
@@ -21,23 +21,20 @@ with open('config.yaml') as yamlfile:
 
 def main():
     fpr_limit = 0.02
-    annotation = "targets_from_lidar"
-    images = "STEREO_LEFT"
     # Data loading
-    testing_data_path = "testing.csv"
-    testing_data = MultiCutStixelData(data_dir=config['data_path'] + 'testing',
-                                      annotation_dir=annotation,
-                                      img_dir=images,
-                                      transform=transforming,
+    testing_data = MultiCutStixelData(data_dir=config['data_path'],
+                                      phase='testing',
+                                      transform=feature_transforming,
                                       target_transform=target_transforming)
     testing_dataloader = DataLoader(testing_data, batch_size=config['batch_size'],
                                     num_workers=config['resources']['test_worker'],
                                     pin_memory=True,
-                                    shuffle=False)
+                                    shuffle=False,
+                                    drop_last=True)
 
     # Set up the Model
     model = ConvNeXt(depths=[3]).to(device)
-    weights_file = config['weights']['file']
+    weights_file = config['weights_file']
     model.load_state_dict(torch.load("saved_models/" + weights_file))
     print(f'Weights loaded from: {weights_file}')
 
@@ -72,8 +69,8 @@ def main():
         checkpoint = config['weights']['file'].split('_')[1]
         wandb_logger = wandb.init(project=config['logging']['project'],
                                   config={
-                                      "architecture": config['logging']['architecture'],
-                                      "dataset": config['logging']['dataset'],
+                                      "architecture": type(model).__name__,
+                                      "dataset": testing_data.name,
                                       "checkpoint": checkpoint,
                                       "epochs": epochs,
                                       "fpr_limit": fpr_limit

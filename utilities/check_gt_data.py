@@ -5,13 +5,13 @@ import random
 import io
 
 from utilities.visualization import __draw_stixel_on_image
-from dataloader.waymo_multicut import MultiCutStixelData, transforming, target_transforming
+from dataloader.stixel_multicut import MultiCutStixelData, feature_transforming, target_transforming
 
 
 def main():
     checking_data_path = "training_data.csv"
     checking_data = MultiCutStixelData(checking_data_path, data_dir="data/training",
-                                       transform=transforming,
+                                       transform=feature_transforming,
                                        target_transform=target_transforming)
     checking_dataloader = DataLoader(checking_data, batch_size=1, num_workers=4, pin_memory=True, shuffle=True)
 
