@@ -3,11 +3,12 @@ import wandb
 import yaml
 from torch.utils.data import DataLoader
 from torchsummary import summary
+from datetime import datetime
 import os
 import torch.nn as nn
 from models.ConvNeXt import ConvNeXt
 from engine import train_one_epoch, evaluate
-from dataloader.stixel_multicut import MultiCutStixelData, feature_transforming, target_transforming
+from dataloader.stixel_multicut import MultiCutStixelData, target_transform_gaussian_blur
 
 
 # 0.1 Get cpu or gpu device for training.
@@ -15,21 +16,22 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 # 0.2 Load configfile
 with open('config.yaml') as yamlfile:
     config = yaml.load(yamlfile, Loader=yaml.FullLoader)
+overall_start_time = datetime.now()
 
 
 def main():
     # Load data
     training_data = MultiCutStixelData(data_dir=config['data_path'],
                                        phase='training',
-                                       transform=feature_transforming,
-                                       target_transform=target_transforming)
+                                       transform=None,
+                                       target_transform=target_transform_gaussian_blur)
     train_dataloader = DataLoader(training_data, batch_size=config['batch_size'],
                                   num_workers=config['resources']['train_worker'], pin_memory=True, drop_last=True)
 
     validation_data = MultiCutStixelData(data_dir=config['data_path'],
                                          phase='validation',
-                                         transform=feature_transforming,
-                                         target_transform=target_transforming)
+                                         transform=None,
+                                         target_transform=target_transform_gaussian_blur)
     val_dataloader = DataLoader(validation_data, batch_size=config['batch_size'],
                                 num_workers=config['resources']['val_worker'], pin_memory=True, shuffle=True, drop_last=True)
 
@@ -91,17 +93,19 @@ def main():
             print(f"\n   Epoch {epoch + 1}\n----------------------------------------------------------------")
             train_one_epoch(train_dataloader, model, loss_fn, optimizer,
                             device=device, writer=wandb_logger)
-            eval_loss = evaluate(val_dataloader, model, loss_fn,
+            test_error = evaluate(val_dataloader, model, loss_fn,
                                  device=device, writer=wandb_logger)
             # Save model
             if config['logging']['activate']:
-                if os.path.isdir('saved_models'):
-                    weights_path = f"saved_models/StixelNExT_{wandb_logger.name}_epoch-{epoch}_loss-{eval_loss}.pth"
-                    torch.save(model.state_dict(), weights_path)
-                    print("Saved PyTorch Model State to " + weights_path)
-                else:
-                    print("Directory doesn't exist.")
-
+                saved_models_path = os.path.join('saved_models',wandb_logger.name)
+                os.makedirs(saved_models_path, exist_ok=True)
+                weights_name = f"StixelNExT_{wandb_logger.name}_epoch-{epoch}_test-error-{test_error}.pth"
+                torch.save(model.state_dict(), os.path.join(saved_models_path, weights_name))
+                print("Saved PyTorch Model State to " + os.path.join(saved_models_path, weights_name))
+            step_time = datetime.now() - overall_start_time
+            print("Time elapsed: {}".format(step_time))
+        overall_time = datetime.now() - overall_start_time
+        print(f"Finished training in {str(overall_time).split('.')[0]}")
 
 if __name__ == '__main__':
     main()
