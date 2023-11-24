@@ -41,12 +41,10 @@ def extract_stixels(cut_mtx, bottom_mtx):
                 # End of the current stixel and start of a new one
                 current_stixel.y_b = y
                 stixels.append(current_stixel)
-                # Start a new stixel if there's more cut points below
-                if y < rows - 1 and cut_mtx[y + 1, x] == 1:
-                    stixel_started = True
-                    current_stixel = Stixel(x, y + 1, None)
-                else:
-                    stixel_started = False
+                stixel_started = False
+                current_stixel = None
+            elif bottom_mtx[y, x] == 1:
+                print(f"Missmatch at ({x},{y}), Cut_mtx: {cut_mtx[y, x]}, Bottom_mtx: {bottom_mtx[y, x]}.")
         # In case the stixel doesn't end properly
         if stixel_started:
             print("no end found")
