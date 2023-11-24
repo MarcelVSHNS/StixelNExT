@@ -100,7 +100,7 @@ class ConvNextEncoder(nn.Module):
 class Head(nn.Sequential):
     def __init__(self, out_features):
         super().__init__()
-        self.decoder = nn.Conv2d(out_features, 3, kernel_size=1, stride=1)
+        self.decoder = nn.Conv2d(out_features, 2, kernel_size=1, stride=1)
         self.activation = nn.Sigmoid()
 
     def forward(self, x):

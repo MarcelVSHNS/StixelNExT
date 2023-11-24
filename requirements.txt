@@ -6,3 +6,4 @@ matplotlib
 wandb
 torchsummary
 pyyaml
+opencv-python

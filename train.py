@@ -9,6 +9,8 @@ import torch.nn as nn
 from models.ConvNeXt import ConvNeXt
 from engine import train_one_epoch, evaluate
 from dataloader.stixel_multicut import MultiCutStixelData, target_transform_gaussian_blur
+from dataloader.stixel_multicut_interpreter import StixelNExTInterpreter
+from utilities.visualization import draw_stixels_on_image
 
 
 # 0.1 Get cpu or gpu device for training.
@@ -24,14 +26,14 @@ def main():
     training_data = MultiCutStixelData(data_dir=config['data_path'],
                                        phase='training',
                                        transform=None,
-                                       target_transform=target_transform_gaussian_blur)
+                                       target_transform=None)               # target_transform_gaussian_blur
     train_dataloader = DataLoader(training_data, batch_size=config['batch_size'],
                                   num_workers=config['resources']['train_worker'], pin_memory=True, drop_last=True)
 
     validation_data = MultiCutStixelData(data_dir=config['data_path'],
                                          phase='validation',
                                          transform=None,
-                                         target_transform=target_transform_gaussian_blur)
+                                         target_transform=None)
     val_dataloader = DataLoader(validation_data, batch_size=config['batch_size'],
                                 num_workers=config['resources']['val_worker'], pin_memory=True, shuffle=True, drop_last=True)
 
@@ -67,7 +69,11 @@ def main():
     # Explore data
     test_features, test_labels = next(iter(val_dataloader))
     if config['explore_data']:
-        pass
+        result_interpreter = StixelNExTInterpreter(test_labels[0], detection_threshold=1)
+        stixel = result_interpreter.get_stixel()
+        print(len(stixel))
+        stixel_img = draw_stixels_on_image(test_features[0], stixel)
+        stixel_img.show()
 
     # Inspect model
     if config['inspect_model']:

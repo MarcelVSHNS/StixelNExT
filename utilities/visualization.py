@@ -4,6 +4,10 @@ import torch
 import io
 from PIL import Image
 import random
+from typing import List
+import cv2
+from dataloader.stixel_multicut_interpreter import Stixel
+import matplotlib.patches as patches
 
 
 def show_meta_data(x_feature, y_target, idx=0):
@@ -160,3 +164,49 @@ WAYMO_SEG_COLOR_MAP = {
     WAYMO_SEGMENTATION['TYPE_DYNAMIC']: [102, 102, 102],
     WAYMO_SEGMENTATION['TYPE_STATIC']: [102, 102, 102]
 }
+
+"""
+def draw_stixels_on_image(image_tensor, stixels: List[Stixel], stixel_width=8, alpha=0.3):
+    # TODO: adapt and make monocolor (cool tuerkis with pink for object_stixel)
+    tensor = image_tensor.permute(1, 2, 0).numpy()
+    image = Image.fromarray((tensor * 255).astype(np.uint8))
+    for stixel in stixels:
+        top_left_x, top_left_y = stixel.x, stixel.y_t
+        bottom_left_x, bottom_left_y = stixel.x, stixel.y_b
+        color = (255, 0, 0)
+        bottom_right_x = bottom_left_x + stixel_width
+        overlay = image.copy()
+        cv2.rectangle(overlay, (top_left_x, top_left_y), (bottom_right_x, bottom_left_y), color, -1)
+        cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0, image)
+        cv2.rectangle(image, (top_left_x, top_left_y), (bottom_right_x, bottom_left_y), color, 2)
+    return Image.fromarray(image)
+"""
+
+
+def draw_stixels_on_image(image_tensor, stixels: List[Stixel], stixel_width=8):
+    # Konvertieren des Tensors in ein PIL-Bild
+    tensor = image_tensor.permute(1, 2, 0).numpy()
+    image = Image.fromarray(tensor.astype(np.uint8))
+
+    # Erstellen einer Matplotlib-Figur
+    fig, ax = plt.subplots()
+    ax.imshow(image)
+
+    for stixel in stixels:
+        top_left_x, top_left_y = stixel.x, stixel.y_t
+        bottom_right_x, bottom_right_y = top_left_x + stixel_width, stixel.y_b
+        width = bottom_right_x - top_left_x
+        height = bottom_right_y - top_left_y
+
+        # Festlegen der Farbe basierend auf der Klassenzugehörigkeit des Stixels
+        color = 'turquoise'  # Türkis für normale Stixel
+        if stixel.cls == 0:
+            color = 'pink'  # Pink für Objekt-Stixel
+
+        # Hinzufügen eines Rechtecks
+        rect = patches.Rectangle((top_left_x, top_left_y), width, height, linewidth=2, edgecolor=color, facecolor='none')
+        ax.add_patch(rect)
+
+    # Entfernen der Achsen und Anzeigen des Bildes
+    ax.axis('off')
+    plt.show()
