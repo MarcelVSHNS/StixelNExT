@@ -58,7 +58,8 @@ class MultiCutStixelData(Dataset):
         img_path_full: str = os.path.join(self.img_path, self.sample_map[idx] + ".png")
         feature_image: torch.Tensor = read_image(img_path_full, ImageReadMode.RGB).to(torch.float32)
         target_labels: pd.DataFrame = pd.read_csv(os.path.join(self.annotation_path, os.path.basename(self.sample_map[idx]) + ".csv"))
-        self.check_target(feature_image, target_labels)
+        #print(self.sample_map[idx])
+        #self.check_target(feature_image, target_labels)
         target_labels = self._preparation_of_target_label(target_labels)
         if self.transform:
             feature_image = self.transform(feature_image)
@@ -104,7 +105,7 @@ class MultiCutStixelData(Dataset):
         for x, y_t, y_b, cls in coordinates.astype(int):
             stixels.append(Stixel(x, y_t, y_b, cls))
         print(f"len: {len(stixels)}")
-        #img = draw_stixels_on_image(tensor_image, stixels)
+        img = draw_stixels_on_image(tensor_image, stixels)
         #img.show()
 
 

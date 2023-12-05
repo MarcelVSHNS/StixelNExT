@@ -189,7 +189,7 @@ def draw_stixels_on_image(image_tensor, stixels: List[Stixel], stixel_width=8):
     image = Image.fromarray(tensor.astype(np.uint8))
 
     # Erstellen einer Matplotlib-Figur
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(20, 12))
     ax.imshow(image)
 
     for stixel in stixels:
@@ -197,16 +197,8 @@ def draw_stixels_on_image(image_tensor, stixels: List[Stixel], stixel_width=8):
         bottom_right_x, bottom_right_y = top_left_x + stixel_width, stixel.y_b
         width = bottom_right_x - top_left_x
         height = bottom_right_y - top_left_y
-
-        # Festlegen der Farbe basierend auf der Klassenzugehörigkeit des Stixels
         color = 'turquoise'  # Türkis für normale Stixel
-        if stixel.cls == 0:
-            color = 'pink'  # Pink für Objekt-Stixel
-
-        # Hinzufügen eines Rechtecks
-        rect = patches.Rectangle((top_left_x, top_left_y), width, height, linewidth=2, edgecolor=color, facecolor='none')
+        rect = patches.Rectangle((top_left_x, top_left_y), width, height, linewidth=2, edgecolor=color, facecolor='none', fill=None)
         ax.add_patch(rect)
-
-    # Entfernen der Achsen und Anzeigen des Bildes
     ax.axis('off')
     plt.show()

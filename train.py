@@ -7,6 +7,7 @@ from datetime import datetime
 import os
 import torch.nn as nn
 from models.ConvNeXt import ConvNeXt
+from models.swin_transformer_v2 import SwinTransformerV2
 from engine import train_one_epoch, evaluate
 from dataloader.stixel_multicut import MultiCutStixelData, target_transform_gaussian_blur
 from dataloader.stixel_multicut_interpreter import StixelNExTInterpreter
@@ -15,6 +16,7 @@ from utilities.visualization import draw_stixels_on_image
 
 # 0.1 Get cpu or gpu device for training.
 device = "cuda" if torch.cuda.is_available() else "cpu"
+print(device)
 # 0.2 Load configfile
 with open('config.yaml') as yamlfile:
     config = yaml.load(yamlfile, Loader=yaml.FullLoader)
@@ -37,8 +39,22 @@ def main():
     val_dataloader = DataLoader(validation_data, batch_size=config['batch_size'],
                                 num_workers=config['resources']['val_worker'], pin_memory=True, shuffle=True, drop_last=True)
 
+    testing_data = MultiCutStixelData(data_dir=config['data_path'],
+                                         phase='testing',
+                                         transform=None,
+                                         target_transform=None)
+    test_dataloader = DataLoader(testing_data, batch_size=config['batch_size'],
+                                num_workers=config['resources']['test_worker'], pin_memory=True, shuffle=True,
+                                drop_last=True)
+
     # Define Model
     model = ConvNeXt(depths=[3]).to(device)
+
+    # test swin
+    x = torch.randn((1, 3, 1200, 1920)).to(device)
+    model_swin = SwinTransformerV2(img_size=(1200, 1920), patch_size=40, window_size=6, depths=[3]).to(device)
+
+
     # Load Weights
     if config['load_weights']:
         weights_file = config['weights_file']
@@ -67,7 +83,7 @@ def main():
         wandb_logger = None
 
     # Explore data
-    test_features, test_labels = next(iter(val_dataloader))
+    test_features, test_labels = next(iter(test_dataloader))
     if config['explore_data']:
         result_interpreter = StixelNExTInterpreter(test_labels[0], detection_threshold=1)
         stixel = result_interpreter.get_stixel()
@@ -77,9 +93,7 @@ def main():
 
     # Inspect model
     if config['inspect_model']:
-        summary(model, (training_data.img_size['channels'],
-                        training_data.img_size['height'],
-                        training_data.img_size['width']))
+        summary(model_swin, (3, 1200, 1920))
         data = test_features.to(device)
         print("Input shape: " + str(data.shape))
         print("Output shape: " + str(model(data).shape))
@@ -112,6 +126,7 @@ def main():
             print("Time elapsed: {}".format(step_time))
         overall_time = datetime.now() - overall_start_time
         print(f"Finished training in {str(overall_time).split('.')[0]}")
+
 
 if __name__ == '__main__':
     main()
