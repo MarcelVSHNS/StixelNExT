@@ -165,40 +165,18 @@ WAYMO_SEG_COLOR_MAP = {
     WAYMO_SEGMENTATION['TYPE_STATIC']: [102, 102, 102]
 }
 
-"""
-def draw_stixels_on_image(image_tensor, stixels: List[Stixel], stixel_width=8, alpha=0.3):
-    # TODO: adapt and make monocolor (cool tuerkis with pink for object_stixel)
-    tensor = image_tensor.permute(1, 2, 0).numpy()
-    image = Image.fromarray((tensor * 255).astype(np.uint8))
+
+def draw_stixels_on_image(image_tensor, stixels: List[Stixel], stixel_width=8):
+    tensor_np_image = image_tensor.permute(1, 2, 0).numpy()
+    np_image_rgb = np.array((tensor_np_image * 255).astype(np.uint8))
+    opencv_image = cv2.cvtColor(np_image_rgb, cv2.COLOR_RGB2BGR)
+    # black_image = np.zeros((1200, 1920, 3), dtype=np.uint8)
     for stixel in stixels:
         top_left_x, top_left_y = stixel.x, stixel.y_t
         bottom_left_x, bottom_left_y = stixel.x, stixel.y_b
-        color = (255, 0, 0)
+        color = (0, 255, 0)
         bottom_right_x = bottom_left_x + stixel_width
-        overlay = image.copy()
-        cv2.rectangle(overlay, (top_left_x, top_left_y), (bottom_right_x, bottom_left_y), color, -1)
-        cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0, image)
-        cv2.rectangle(image, (top_left_x, top_left_y), (bottom_right_x, bottom_left_y), color, 2)
-    return Image.fromarray(image)
-"""
-
-
-def draw_stixels_on_image(image_tensor, stixels: List[Stixel], stixel_width=8):
-    # Konvertieren des Tensors in ein PIL-Bild
-    tensor = image_tensor.permute(1, 2, 0).numpy()
-    image = Image.fromarray(tensor.astype(np.uint8))
-
-    # Erstellen einer Matplotlib-Figur
-    fig, ax = plt.subplots(figsize=(20, 12))
-    ax.imshow(image)
-
-    for stixel in stixels:
-        top_left_x, top_left_y = stixel.x, stixel.y_t
-        bottom_right_x, bottom_right_y = top_left_x + stixel_width, stixel.y_b
-        width = bottom_right_x - top_left_x
-        height = bottom_right_y - top_left_y
-        color = 'turquoise'  # Türkis für normale Stixel
-        rect = patches.Rectangle((top_left_x, top_left_y), width, height, linewidth=2, edgecolor=color, facecolor='none', fill=None)
-        ax.add_patch(rect)
-    ax.axis('off')
-    plt.show()
+        cv2.rectangle(opencv_image, (top_left_x, top_left_y), (bottom_right_x, bottom_left_y), color, 1)
+    rgb_image = cv2.cvtColor(opencv_image, cv2.COLOR_BGR2RGB)
+    normal_image = 255 - rgb_image
+    return Image.fromarray(normal_image)

@@ -58,8 +58,6 @@ class MultiCutStixelData(Dataset):
         img_path_full: str = os.path.join(self.img_path, self.sample_map[idx] + ".png")
         feature_image: torch.Tensor = read_image(img_path_full, ImageReadMode.RGB).to(torch.float32)
         target_labels: pd.DataFrame = pd.read_csv(os.path.join(self.annotation_path, os.path.basename(self.sample_map[idx]) + ".csv"))
-        #print(self.sample_map[idx])
-        #self.check_target(feature_image, target_labels)
         target_labels = self._preparation_of_target_label(target_labels)
         if self.transform:
             feature_image = self.transform(feature_image)
@@ -85,13 +83,14 @@ class MultiCutStixelData(Dataset):
         grouped_coordinates_by_col = _group_points_by_x(coordinates)
         for col_points in grouped_coordinates_by_col:
             for x, y_t, y_b, cls in np.array(col_points).astype(int):
-                assert x < mtx_width, f"x-value out of bound ({x},{y_t})."
-                assert y_t < mtx_height, f"y-value top out of bound ({x},{y_t})."
-                assert y_b < mtx_height, f"y-value bottom out of bound ({x},{y_t})."
-                cut_mtx[y_t][x] = 1  # for every top point add a 1 to indicate a cut
-                cut_mtx[y_b][x] = 1  # for every bottom point add a 1 to indicate a cut
-                #if cls == 1:
-                bottom_mtx[y_b][x] = 1  # for every top point add a 1 to cuts
+                if cls == 1:
+                    assert x < mtx_width, f"x-value out of bound ({x},{y_t})."
+                    assert y_t < mtx_height, f"y-value top out of bound ({x},{y_t})."
+                    assert y_b < mtx_height, f"y-value bottom out of bound ({x},{y_t})."
+                    cut_mtx[y_t][x] = 1  # for every top point add a 1 to indicate a cut
+                    #cut_mtx[y_b][x] = 1  # for every bottom point add a 1 to indicate a cut
+                    #if cls == 1:
+                    bottom_mtx[y_b][x] = 1  # for every top point add a 1 to cuts
             # for every bottom_pt to top_pt add ones
             #_fill_mtx_with_points(obj_mtx, col_points)
         # observe sequence: cut, obj, top
