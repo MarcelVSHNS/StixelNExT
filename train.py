@@ -16,7 +16,6 @@ from utilities.visualization import draw_stixels_on_image
 
 # 0.1 Get cpu or gpu device for training.
 device = "cuda" if torch.cuda.is_available() else "cpu"
-print(device)
 # 0.2 Load configfile
 with open('config.yaml') as yamlfile:
     config = yaml.load(yamlfile, Loader=yaml.FullLoader)
@@ -42,18 +41,13 @@ def main():
     testing_data = MultiCutStixelData(data_dir=config['data_path'],
                                          phase='testing',
                                          transform=None,
-                                         target_transform=None)
+                                         target_transform=target_transform_gaussian_blur)
     test_dataloader = DataLoader(testing_data, batch_size=config['batch_size'],
-                                num_workers=config['resources']['test_worker'], pin_memory=True, shuffle=True,
+                                num_workers=config['resources']['test_worker'], pin_memory=True, shuffle=False,
                                 drop_last=True)
 
     # Define Model
-    model = ConvNeXt(depths=[3]).to(device)
-
-    # test swin
-    x = torch.randn((1, 3, 1200, 1920)).to(device)
-    model_swin = SwinTransformerV2(img_size=(1200, 1920), patch_size=40, window_size=6, depths=[3]).to(device)
-
+    model = ConvNeXt(depths=[6, 3]).to(device)
 
     # Load Weights
     if config['load_weights']:
@@ -93,7 +87,7 @@ def main():
 
     # Inspect model
     if config['inspect_model']:
-        summary(model_swin, (3, 1200, 1920))
+        summary(model, (3, 1200, 1920))
         data = test_features.to(device)
         print("Input shape: " + str(data.shape))
         print("Output shape: " + str(model(data).shape))

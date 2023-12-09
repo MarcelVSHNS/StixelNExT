@@ -96,16 +96,35 @@ class ConvNextEncoder(nn.Module):
             x = stage(x)
         return x
 
-
+"""
 class Head(nn.Sequential):
     def __init__(self, out_features):
         super().__init__()
-        self.decoder = nn.Conv2d(out_features, 2, kernel_size=1, stride=1)
+        self.decoder = nn.Conv2d(out_features, 50, kernel_size=1, stride=1)
         self.activation = nn.Sigmoid()
 
     def forward(self, x):
         x = self.decoder(x)
         return self.activation(x)
+"""
+
+
+class Head(nn.Module):
+    def __init__(self, out_features):
+        super().__init__()
+        # Schicht zum Erhöhen der Dimensionen
+        self.conv = nn.Conv2d(out_features, 240, kernel_size=(1, 1), stride=(1, 1))
+        self.upsample = nn.Upsample(scale_factor=(1.2, 1.25))
+        # Softmax-Funktion
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, x):
+        # Erhöhen der Dimensionen
+        x = self.conv(x)  # increase dimension by 25 %
+        x = self.upsample(x)  # increase dimension by 25 %
+        x = x.permute(0, 2, 3, 1)  # find correct order
+        x = self.softmax(x)
+        return x
 
 
 class ConvNeXt(nn.Module):
