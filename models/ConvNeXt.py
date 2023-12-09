@@ -98,22 +98,24 @@ class ConvNextEncoder(nn.Module):
 
 
 class Head(nn.Sequential):
-    def __init__(self, out_features):
+    def __init__(self, out_features, out_channels):
         super().__init__()
-        self.decoder = nn.Conv2d(out_features, 2, kernel_size=1, stride=1)
+        self.decoder = nn.Conv2d(out_features, out_channels, kernel_size=1, stride=1)
         self.activation = nn.Sigmoid()
 
     def forward(self, x):
         x = self.decoder(x)
+        #upsample_layer = nn.Upsample(size=(150, 240), mode='bilinear', align_corners=False)
+        #upsampled_output = upsample_layer(output)
         return self.activation(x)
 
 
 class ConvNeXt(nn.Module):
     def __init__(self, in_channels=3, stem_features=64, depths=[3, 3, 9, 3], widths=[96, 192, 384, 768],
-                 drop_p: float = .0, num_classes: int = 2):
+                 drop_p: float = .0, out_channels: int = 2):
         super().__init__()
         self.encoder = ConvNextEncoder(in_channels, stem_features, depths, widths, drop_p)
-        self.decoder = Head(self.encoder.stages[-1].outfeatures)
+        self.decoder = Head(self.encoder.stages[-1].outfeatures, out_channels)
 
     def forward(self, x):
         x = self.encoder(x)

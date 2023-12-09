@@ -48,17 +48,17 @@ def main():
                                 drop_last=True)
 
     # Define Model
-    model = ConvNeXt(depths=[3]).to(device)
+    model = ConvNeXt(depths=[3], out_channels=2).to(device)
 
     # test swin
-    x = torch.randn((1, 3, 1200, 1920)).to(device)
-    model_swin = SwinTransformerV2(img_size=(1200, 1920), patch_size=40, window_size=6, depths=[3]).to(device)
+    # x = torch.randn((1, 3, 1200, 1920)).to(device)
+    # model_swin = SwinTransformerV2(img_size=(1200, 1920), patch_size=(30,48), window_size=4, depths=[1, 2]).to(device)
 
 
     # Load Weights
     if config['load_weights']:
         weights_file = config['weights_file']
-        model.load_state_dict(torch.load("saved_models/" + weights_file))
+        model.load_state_dict(torch.load("saved_models/driven-fog-113/" + weights_file))
         print(f'Weights loaded from: {weights_file}')
     # Loss function
     # loss_fn = StixelLoss()
@@ -85,15 +85,21 @@ def main():
     # Explore data
     test_features, test_labels = next(iter(test_dataloader))
     if config['explore_data']:
-        result_interpreter = StixelNExTInterpreter(test_labels[0], detection_threshold=0.5)
+        sample = test_features.to(device)
+        output = model(sample)
+        output = output.cpu().detach()
+        result_interpreter = StixelNExTInterpreter(output[0], detection_threshold=0.09)
+        result_interpreter2 = StixelNExTInterpreter(test_labels[0], detection_threshold=0.5)
         stixel = result_interpreter.get_stixel()
-        print(len(stixel))
+        stixel2 = result_interpreter2.get_stixel()
         stixel_img = draw_stixels_on_image(test_features[0], stixel)
+        stixel_img.show()
+        stixel_img = draw_stixels_on_image(test_features[0], stixel2)
         stixel_img.show()
 
     # Inspect model
     if config['inspect_model']:
-        summary(model_swin, (3, 1200, 1920))
+        summary(model, (3, 1200, 1920))
         data = test_features.to(device)
         print("Input shape: " + str(data.shape))
         print("Output shape: " + str(model(data).shape))
