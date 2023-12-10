@@ -5,6 +5,7 @@ import pandas as pd
 from torch.utils.data import Dataset
 from torchvision.io import read_image, ImageReadMode
 import numpy as np
+from PIL import Image
 from typing import List, Tuple
 from collections import defaultdict
 import cv2
@@ -39,12 +40,13 @@ def _fill_mtx_with_points(obj_mtx, points):
 # 0. Implementation of a Dataset
 class MultiCutStixelData(Dataset):
     # 1. Implement __init()__
-    def __init__(self, data_dir, phase, annotation_dir="targets_from_lidar", img_dir="STEREO_LEFT", transform=None, target_transform=None):
+    def __init__(self, data_dir, phase, annotation_dir="targets_from_lidar", img_dir="STEREO_LEFT", transform=None, target_transform=None, return_original_image=False):
         self.data_dir: str = os.path.join(data_dir, phase)
         self.img_path: str = os.path.join(self.data_dir, img_dir)
         self.annotation_path: str= os.path.join(self.data_dir, annotation_dir)
         filenames: List[str] = os.listdir(os.path.join(self.data_dir, img_dir))
         self.sample_map: List[str] = [os.path.splitext(filename)[0] for filename in filenames]
+        self.return_original_image = return_original_image
         self.transform = transform
         self.target_transform = target_transform
         self.name: str = os.path.basename(data_dir)
@@ -55,7 +57,7 @@ class MultiCutStixelData(Dataset):
         return len(self.sample_map)
 
     # 3. Implement __getitem()__
-    def __getitem__(self, idx) -> Tuple[torch.Tensor,pd.DataFrame]:
+    def __getitem__(self, idx):
         img_path_full: str = os.path.join(self.img_path, self.sample_map[idx] + ".png")
         feature_image: torch.Tensor = read_image(img_path_full, ImageReadMode.RGB).to(torch.float32)
         target_labels: pd.DataFrame = pd.read_csv(os.path.join(self.annotation_path, os.path.basename(self.sample_map[idx]) + ".csv"))
@@ -65,7 +67,10 @@ class MultiCutStixelData(Dataset):
         if self.target_transform:
             target_labels = self.target_transform(target_labels)
         # data type needs to be like the NN layer like .to(torch.float32)
-        return feature_image, target_labels
+        if self.return_original_image:
+            return feature_image, target_labels, cv2.imread(img_path_full)
+        else:
+            return feature_image, target_labels
 
     def _determine_image_size(self):
         test_img_path = os.path.join(self.img_path, self.sample_map[0] + ".png")

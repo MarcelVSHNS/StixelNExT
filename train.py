@@ -36,15 +36,17 @@ def main():
                                          transform=None,
                                          target_transform=target_transform_gaussian_blur)
     val_dataloader = DataLoader(validation_data, batch_size=config['batch_size'],
-                                num_workers=config['resources']['val_worker'], pin_memory=True, shuffle=False, drop_last=True)
+                                num_workers=config['resources']['val_worker'], pin_memory=True, shuffle=False,
+                                drop_last=True)
 
     testing_data = MultiCutStixelData(data_dir=config['data_path'],
-                                         phase='testing',
-                                         transform=None,
-                                         target_transform=target_transform_gaussian_blur)
+                                      phase='testing',
+                                      transform=None,
+                                      target_transform=target_transform_gaussian_blur,
+                                      return_original_image=True)
     test_dataloader = DataLoader(testing_data, batch_size=config['batch_size'],
-                                num_workers=config['resources']['test_worker'], pin_memory=True, shuffle=False,
-                                drop_last=True)
+                                 num_workers=config['resources']['test_worker'], pin_memory=True, shuffle=False,
+                                 drop_last=True)
 
     # Define Model
     model = ConvNeXt(depths=[6, 3]).to(device)
@@ -77,13 +79,12 @@ def main():
         wandb_logger = None
 
     # Explore data
-    test_features, test_labels = next(iter(test_dataloader))
+    test_features, test_labels, image = next(iter(test_dataloader))
     if config['explore_data']:
-        result_interpreter = StixelNExTInterpreter(test_labels[0], detection_threshold=0.5)
-        stixel = result_interpreter.get_stixel()
-        print(len(stixel))
-        stixel_img = draw_stixels_on_image(test_features[0], stixel)
-        stixel_img.show()
+        pick = -1
+        result_interpreter = StixelNExTInterpreter(detection_threshold=0.9, hysteresis_threshold=0.85)
+        result_interpreter.extract_stixel_from_prediction(test_labels[pick])
+        result_interpreter.show_stixel(image[pick])
 
     # Inspect model
     if config['inspect_model']:

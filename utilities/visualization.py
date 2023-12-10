@@ -6,7 +6,6 @@ from PIL import Image
 import random
 from typing import List
 import cv2
-from dataloader.stixel_multicut_interpreter import Stixel
 import matplotlib.patches as patches
 
 
@@ -100,73 +99,7 @@ def plot_roc_curve(fpr, tpr, thres_idx=None, display=False):
         return roc_curve_img
 
 
-WAYMO_SEGMENTATION = {
-    'TYPE_UNDEFINED': 0,
-    'TYPE_EGO_VEHICLE': 1,
-    'TYPE_CAR': 2,
-    'TYPE_TRUCK': 3,
-    'TYPE_BUS': 4,
-    'TYPE_OTHER_LARGE_VEHICLE': 5,
-    'TYPE_BICYCLE': 6,
-    'TYPE_MOTORCYCLE': 7,
-    'TYPE_TRAILER': 8,
-    'TYPE_PEDESTRIAN': 9,
-    'TYPE_CYCLIST': 10,
-    'TYPE_MOTORCYCLIST': 11,
-    'TYPE_BIRD': 12,
-    'TYPE_GROUND_ANIMAL': 13,
-    'TYPE_CONSTRUCTION_CONE_POLE': 14,
-    'TYPE_POLE': 15,
-    'TYPE_PEDESTRIAN_OBJECT': 16,
-    'TYPE_SIGN': 17,
-    'TYPE_TRAFFIC_LIGHT': 18,
-    'TYPE_BUILDING': 19,
-    'TYPE_ROAD': 20,
-    'TYPE_LANE_MARKER': 21,
-    'TYPE_ROAD_MARKER': 22,
-    'TYPE_SIDEWALK': 23,
-    'TYPE_VEGETATION': 24,
-    'TYPE_SKY': 25,
-    'TYPE_GROUND': 26,
-    'TYPE_DYNAMIC': 27,
-    'TYPE_STATIC': 28
-}
-
-
-WAYMO_SEG_COLOR_MAP = {
-    WAYMO_SEGMENTATION['TYPE_UNDEFINED']: [0, 0, 0],
-    WAYMO_SEGMENTATION['TYPE_EGO_VEHICLE']: [102, 102, 102],
-    WAYMO_SEGMENTATION['TYPE_CAR']: [0, 0, 142],
-    WAYMO_SEGMENTATION['TYPE_TRUCK']: [0, 0, 70],
-    WAYMO_SEGMENTATION['TYPE_BUS']: [0, 60, 100],
-    WAYMO_SEGMENTATION['TYPE_OTHER_LARGE_VEHICLE']: [61, 133, 198],
-    WAYMO_SEGMENTATION['TYPE_BICYCLE']: [119, 11, 32],
-    WAYMO_SEGMENTATION['TYPE_MOTORCYCLE']: [0, 0, 230],
-    WAYMO_SEGMENTATION['TYPE_TRAILER']: [111, 168, 220],
-    WAYMO_SEGMENTATION['TYPE_PEDESTRIAN']: [220, 20, 60],
-    WAYMO_SEGMENTATION['TYPE_CYCLIST']: [255, 0, 0],
-    WAYMO_SEGMENTATION['TYPE_MOTORCYCLIST']: [180, 0, 0],
-    WAYMO_SEGMENTATION['TYPE_BIRD']: [127, 96, 0],
-    WAYMO_SEGMENTATION['TYPE_GROUND_ANIMAL']: [91, 15, 0],
-    WAYMO_SEGMENTATION['TYPE_CONSTRUCTION_CONE_POLE']: [230, 145, 56],
-    WAYMO_SEGMENTATION['TYPE_POLE']: [153, 153, 153],
-    WAYMO_SEGMENTATION['TYPE_PEDESTRIAN_OBJECT']: [234, 153, 153],
-    WAYMO_SEGMENTATION['TYPE_SIGN']: [246, 178, 107],
-    WAYMO_SEGMENTATION['TYPE_TRAFFIC_LIGHT']: [250, 170, 30],
-    WAYMO_SEGMENTATION['TYPE_BUILDING']: [70, 70, 70],
-    WAYMO_SEGMENTATION['TYPE_ROAD']: [128, 64, 128],
-    WAYMO_SEGMENTATION['TYPE_LANE_MARKER']: [234, 209, 220],
-    WAYMO_SEGMENTATION['TYPE_ROAD_MARKER']: [217, 210, 233],
-    WAYMO_SEGMENTATION['TYPE_SIDEWALK']: [244, 35, 232],
-    WAYMO_SEGMENTATION['TYPE_VEGETATION']: [107, 142, 35],
-    WAYMO_SEGMENTATION['TYPE_SKY']: [70, 130, 180],
-    WAYMO_SEGMENTATION['TYPE_GROUND']: [102, 102, 102],
-    WAYMO_SEGMENTATION['TYPE_DYNAMIC']: [102, 102, 102],
-    WAYMO_SEGMENTATION['TYPE_STATIC']: [102, 102, 102]
-}
-
-
-def draw_stixels_on_image(image_tensor, stixels: List[Stixel], stixel_width=8):
+def draw_stixels_on_image(image_tensor, stixels, stixel_width=8):
     tensor_np_image = image_tensor.permute(1, 2, 0).numpy()
     np_image_rgb = np.array((tensor_np_image * 255).astype(np.uint8))
     opencv_image = cv2.cvtColor(np_image_rgb, cv2.COLOR_RGB2BGR)
