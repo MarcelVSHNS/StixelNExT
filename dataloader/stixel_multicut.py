@@ -78,17 +78,22 @@ class MultiCutStixelData(Dataset):
         channels, height, width = test_feature_image.shape
         return {'height': height, 'width': width, 'channels': channels}
 
-    def _preparation_of_target_label(self, y_target: pandas.DataFrame, grid_step: int = 8) -> torch.tensor:
+    def _preparation_of_target_label(self, y_target: pandas.DataFrame, grid_step: int = 8, max_depth: int = 50) -> torch.tensor:
         y_target['x'] = (y_target['x'] // grid_step).astype(int)
         y_target['yT'] = (y_target['yT'] // grid_step).astype(int)
         y_target['yB'] = (y_target['yB'] // grid_step)
-        y_target['depth'] = ((y_target['depth'] * 0.5).round(0).clip(upper=44.5) * 2).astype(int)
-        matrix = np.zeros((90, 150, 240))
+        y_target['depth'] = y_target['depth'].clip(upper=max_depth)
+        y_target['depth_x'] = (y_target['depth'] / max_depth * 149).astype(int)
+        y_target['depth_y'] = (y_target['depth'] / max_depth * 239).astype(int)
+        matrix = np.zeros((3, 150, 240))
         for index, row in y_target.iterrows():
-            depth_z = int(row['depth'])
-            row_x = int(row['x'])
             for y in range(row['yT'], row['yB'] + 1):  # Markieren aller Punkte von yT bis yB in der y-Achse
-                matrix[depth_z, y, row_x] = 1
+                matrix[0, int(y), int(row['x'])] = 1
+
+            matrix[1][int(row['depth_x']), int(row['x'])] = 1
+
+            for y in range(row['yT'], row['yB'] + 1):  # Markieren aller Punkte von yT bis yB in der y-Achse
+                matrix[2, int(y), int(row['depth_y'])] = 1
         label = torch.from_numpy(matrix).to(torch.float32)
         return label
 
@@ -106,35 +111,31 @@ def feature_transforming(x_features: torch.Tensor) -> torch.Tensor:
     pass
 
 
-def target_transform_gaussian_blur(y_target: torch.Tensor, kernel_size=3, sigma=4.0, iterations=1) -> torch.Tensor:
-    def gaussian_kernel(size, sigma):
-        # create gaussian kernel
-        coords = torch.arange(size, dtype=torch.float32)
-        coords -= size // 2
+def overlay_original(matrix, original):
+    # calculate col-wise to equalize dense points
+    max_vals = np.max(matrix, axis=0)
+    normalized_matrix = np.divide(matrix, max_vals, out=np.zeros_like(matrix), where=max_vals!=0)
+    return np.maximum(normalized_matrix, original)
 
-        g = coords ** 2
-        g = (-g / (2 * sigma ** 2)).exp()
 
-        g /= g.sum()
-        return g.view(1, -1) * g.view(-1, 1)
-
-    def gaussian_kernel_3d(kernel_size, sigma):
-        gk = gaussian_kernel(kernel_size, sigma)
-        gk3d = torch.zeros((kernel_size, kernel_size, kernel_size))
-        for i in range(kernel_size):
-            gk3d[i] = gk * gk[i]
-        return gk3d
-
-    gauss_kernel = gaussian_kernel_3d(kernel_size, sigma)
-    gauss_kernel = gauss_kernel.expand(1, 1, *gauss_kernel.shape)  # Anpassen der Form für conv3d
-
-    # Konvertieren der Matrix in einen Tensor und Anwenden des Gauß'schen Weichzeichners
-    label_tensor: torch.Tensor = y_target.unsqueeze(0).unsqueeze(0)
-    for _ in range(iterations):
-        blurred_label = F.conv3d(label_tensor, gauss_kernel, padding=kernel_size // 2)
-    blurred_label: torch.Tensor = blurred_label.squeeze(0).squeeze(0)
-    amplified_label = blurred_label * 10
-    amplified_label[y_target == 1] = 1
-    #test = amplified_label.numpy()
-    #max = np.amax(test)
-    return torch.clamp(amplified_label, max=1)
+def target_transform_gaussian_blur(y_target: torch.Tensor) -> torch.Tensor:
+    y_target_numpy: np.array = y_target.numpy()
+    # possible option is to blur 3-dimensional (like an RGB color img): cut, bottom
+    yx_mtx = y_target_numpy[0, :, :]
+    zx_mtx = y_target_numpy[1, :, :]
+    yz_mtx = y_target_numpy[2, :, :]
+    # use (1,5) as kernel_size to refer to columns, or softer with (3,5)
+    # be aware: close points lead to higher values, lonely points have lower prob.
+    # blur with cv2 filter
+    xy_mtx_blur = cv2.GaussianBlur(yx_mtx, (3, 7), sigmaX=1.8, sigmaY=1.2)
+    xz_mtx_blur = cv2.GaussianBlur(zx_mtx, (3, 11), sigmaX=1.0, sigmaY=2.0)
+    yz_mtx_blur = cv2.GaussianBlur(yz_mtx, (3, 9), sigmaX=1.0, sigmaY=1.5)
+    #bottom_mtx_blur = cv2.GaussianBlur(bottom_mtx, kernel_size, sigmaX=sigma_x, sigmaY=sigma_y)
+    # apply targets on blur
+    yx_mtx = overlay_original(xy_mtx_blur, yx_mtx)
+    zx_mtx = overlay_original(xz_mtx_blur, zx_mtx)
+    yz_mtx = overlay_original(yz_mtx_blur, yz_mtx)
+    # convert back to torch.tensor
+    stacked_mtx = np.stack([yx_mtx, zx_mtx, yz_mtx])
+    label = torch.from_numpy(stacked_mtx).to(torch.float32)
+    return label

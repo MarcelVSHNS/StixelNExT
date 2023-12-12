@@ -3,6 +3,7 @@ from torch import Tensor
 from typing import List
 from torchvision.ops import StochasticDepth
 import torch
+import torch.nn.functional as F
 
 
 class ConvNextStem(nn.Sequential):
@@ -112,19 +113,16 @@ class Head(nn.Sequential):
 class Head(nn.Module):
     def __init__(self, out_features):
         super().__init__()
-        # Schicht zum Erhöhen der Dimensionen
-        self.conv = nn.Conv2d(out_features, 240, kernel_size=(1, 1), stride=(1, 1))
-        self.upsample = nn.Upsample(scale_factor=(1.2, 1.25))
-        # Softmax-Funktion
-        self.softmax = nn.Softmax(dim=1)
+        self.decoder = nn.Conv2d(out_features, 3, kernel_size=(1, 1), stride=(1, 1))
 
     def forward(self, x):
-        # Erhöhen der Dimensionen
-        x = self.conv(x)  # increase dimension by 25 %
-        x = self.upsample(x)  # increase dimension by 25 %
-        x = x.permute(0, 2, 3, 1)  # find correct order
-        x = self.softmax(x)
-        return x
+        x = self.decoder(x)
+        sigmoid_output = torch.sigmoid(x[:, 0, :, :])
+        softmax_z_output = F.softmax(x[:, 1, :, :], dim=2)
+        x_transposed = x[:, 2, :, :].transpose(1, 2)
+        softmax_y_output = F.softmax(x_transposed, dim=2).transpose(1, 2)
+
+        return torch.stack((sigmoid_output, softmax_z_output, softmax_y_output), dim=1)
 
 
 class ConvNeXt(nn.Module):

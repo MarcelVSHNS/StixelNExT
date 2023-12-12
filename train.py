@@ -49,7 +49,7 @@ def main():
                                  drop_last=True)
 
     # Define Model
-    model = ConvNeXt(depths=[6, 3]).to(device)
+    model = ConvNeXt(depths=[3]).to(device)
 
     # Load Weights
     if config['load_weights']:
@@ -100,6 +100,7 @@ def main():
         data = test_features.to(device)
         output = model(data)
         target = test_labels.to(device)
+        #test = output.cpu().detach()[-1].numpy()
         print(loss_fn(output, target))
 
     # Training
