@@ -100,10 +100,11 @@ def main():
         data = test_features.to(device)
         output = model(data)
         target = test_labels.to(device)
-        print(loss_fn(output, target))
+        print(loss_fn(output, target.squeeze(0)))
 
     # Training
     if config['training']:
+        torch.cuda.empty_cache()
         for epoch in range(config['num_epochs']):
             print(f"\n   Epoch {epoch + 1}\n----------------------------------------------------------------")
             train_one_epoch(train_dataloader, model, loss_fn, optimizer,
