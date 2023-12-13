@@ -10,7 +10,7 @@ class Stixel:
         self.column = x
         self.top_row = y_t
         self.bottom_row = y_b
-        self.depth = depth / 2
+        self.depth = depth
         self.scale_by_grid()
 
     def __repr__(self):
@@ -25,24 +25,30 @@ class Stixel:
 
 
 def extract_stixels(prediction, s1, s2):
-    num_depths, num_rows, num_cols = len(prediction), len(prediction[0]), len(prediction[0][0])
+    num_rows, num_cols = prediction[0].shape
+    xy_repr = prediction[0]
+    xz_repr = prediction[1]
+    zy_repr = prediction[2]
     stixels = []
-
-    for depth in range(num_depths):
-        for col in range(num_cols):
-            in_stixel = False
-            stixel_start = 0
-            for row in range(num_rows):
-                if in_stixel:
-                    if prediction[depth][row][col] < s2:
-                        stixels.append(Stixel(col, stixel_start, row, depth))
-                        in_stixel = False
-                else:
-                    if prediction[depth][row][col] >= s1:
-                        in_stixel = True
-                        stixel_start = row
+    for col in range(num_cols):
+        in_stixel = False
+        stixel_start = 0
+        depth = 0
+        for row in range(num_rows):
             if in_stixel:
-                stixels.append(Stixel(col, stixel_start, num_rows - 1, depth))
+                if xy_repr[row][col] < s2:
+                    stixels.append(Stixel(col, stixel_start, row, depth))
+                    in_stixel = False
+            else:
+                if xy_repr[row][col] >= s1:
+                    z_row = np.argmax(zy_repr[row, :])
+                    print(np.argmax(zy_repr[99, :]))
+                    z_xz = xz_repr[z_row, col]
+                    depth = z_row / 240 * 50
+                    in_stixel = True
+                    stixel_start = row
+        if in_stixel:
+            stixels.append(Stixel(col, stixel_start, num_rows - 1, depth))
     return stixels
 
 
@@ -56,7 +62,7 @@ def draw_stixels_on_image(image, stixels: List[Stixel], stixel_width=8, alpha=0.
     image = np.array(image.numpy())
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     stixels.sort(key=lambda x: x.depth, reverse=True)
-    min_depth, max_depth = 0, 45
+    min_depth, max_depth = 0, 50
     for stixel in stixels:
         top_left_x, top_left_y = stixel.column, stixel.top_row
         bottom_left_x, bottom_left_y = stixel.column, stixel.bottom_row
