@@ -4,22 +4,20 @@ import torch
 
 class StixelLoss(nn.Module):
     # threshold means the threshold when (probab) a border is detected
-    def __init__(self, threshold=0.5):
+    def __init__(self, alpha=1.0, beta=.0, threshold=0.5, offset=10.0):
         """Intersection over Union"""
         super().__init__()
+        self.alpha = alpha
+        self.beta = beta
         self.threshold = threshold
-        self.kl_loss = nn.BCELoss(reduction='mean')
-        # KLDivLoss(reduction="batchmean")
+        self.offset = offset
+        self.bce_loss = nn.BCELoss(reduction='mean')
 
     def forward(self, inputs, targets):
-        # inputs = torch.where(inputs < self.threshold, 0, 1)
-        print(f"Input: {inputs.shape}")
-        print(f"Target: {targets.squeeze().shape}")
-        loss_1 = self.kl_loss(inputs, targets.squeeze())
-        loss_2 = self.priori_loss_fn(inputs, targets.squeeze())
-        return loss_1 + loss_2
-
-    def priori_loss_fn(self, inputs, targets):
-        inputs
-        threshold = torch.where(inputs < self.threshold, 0, 1)
-        return torch.mean(threshold)
+        loss_bce = self.bce_loss(inputs, targets.squeeze(0))
+        # additional penalty term
+        mask = inputs[0] > self.threshold
+        penalties = mask.sum(dim=0) - self.offset
+        penalties = penalties.clamp(min=0)  # set negative values to 0
+        loss_penalty = penalties.mean()
+        return self.alpha * loss_bce + self.beta * loss_penalty

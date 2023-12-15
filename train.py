@@ -5,9 +5,8 @@ from torch.utils.data import DataLoader
 from torchsummary import summary
 from datetime import datetime
 import os
-import torch.nn as nn
+from losses.stixel_loss import StixelLoss
 from models.ConvNeXt import ConvNeXt
-from models.swin_transformer_v2 import SwinTransformerV2
 from engine import train_one_epoch, evaluate
 from dataloader.stixel_multicut import MultiCutStixelData, target_transform_gaussian_blur
 from dataloader.stixel_multicut_interpreter import StixelNExTInterpreter
@@ -40,29 +39,31 @@ def main():
                                 num_workers=config['resources']['val_worker'], pin_memory=True, shuffle=False, drop_last=True)
 
     testing_data = MultiCutStixelData(data_dir=config['data_path'],
-                                         phase='testing',
-                                         transform=None,
-                                         target_transform=None)
+                                      phase='testing',
+                                      transform=None,
+                                      target_transform=None,
+                                      return_original_image=True)
     test_dataloader = DataLoader(testing_data, batch_size=config['batch_size'],
                                 num_workers=config['resources']['test_worker'], pin_memory=True, shuffle=True,
                                 drop_last=True)
 
     # Define Model
-    model = ConvNeXt(depths=[3], out_channels=2).to(device)
-
-    # test swin
-    # x = torch.randn((1, 3, 1200, 1920)).to(device)
-    # model_swin = SwinTransformerV2(img_size=(1200, 1920), patch_size=(30,48), window_size=4, depths=[1, 2]).to(device)
-
+    model = ConvNeXt(stem_features=config['nn']['stem_features'],
+                     depths=config['nn']['depths'],
+                     widths=config['nn']['widths'],
+                     drop_p=config['nn']['drop_p'],
+                     out_channels=2).to(device)
 
     # Load Weights
     if config['load_weights']:
         weights_file = config['weights_file']
-        model.load_state_dict(torch.load("saved_models/driven-fog-113/" + weights_file))
+        model.load_state_dict(torch.load("saved_models/" + weights_file))
         print(f'Weights loaded from: {weights_file}')
     # Loss function
-    # loss_fn = StixelLoss()
-    loss_fn = nn.BCELoss()
+    loss_fn = StixelLoss(alpha=config['loss']['alpha'],
+                         beta=config['loss']['beta'],
+                         threshold=config['pred_threshold'])
+
     # Optimizer definition
     optimizer = torch.optim.Adam(model.parameters(), lr=config['learning_rate'])
 
@@ -83,19 +84,26 @@ def main():
         wandb_logger = None
 
     # Explore data
-    test_features, test_labels = next(iter(test_dataloader))
+    test_features, test_labels, image = next(iter(test_dataloader))
     if config['explore_data']:
-        sample = test_features.to(device)
-        output = model(sample)
-        output = output.cpu().detach()
-        result_interpreter = StixelNExTInterpreter(output[0], detection_threshold=0.09)
-        result_interpreter2 = StixelNExTInterpreter(test_labels[0], detection_threshold=0.5)
-        stixel = result_interpreter.get_stixel()
-        stixel2 = result_interpreter2.get_stixel()
-        stixel_img = draw_stixels_on_image(test_features[0], stixel)
-        stixel_img.show()
-        stixel_img = draw_stixels_on_image(test_features[0], stixel2)
-        stixel_img.show()
+        pick = -1
+        result_interpreter = StixelNExTInterpreter(detection_threshold=config['pred_threshold'],
+                                                   hysteresis_threshold=config['pred_threshold'] - 0.05)
+
+        # print ground truth
+        result_interpreter.extract_stixel_from_prediction(test_labels[pick], detection_threshold=1.0,
+                                                          hysteresis_threshold=0.9)
+        result_interpreter.show_stixel(image[pick])
+        result_interpreter.show_bottoms(image[pick])
+
+        # print inference
+        if config['load_weights']:
+            sample = test_features.to(device)
+            output = model(sample)
+            output = output.cpu().detach()
+            result_interpreter.extract_stixel_from_prediction(output[pick])
+            result_interpreter.show_stixel(image[pick])
+            result_interpreter.show_bottoms(image[pick])
 
     # Inspect model
     if config['inspect_model']:
