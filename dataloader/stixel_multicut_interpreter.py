@@ -9,19 +9,19 @@ import matplotlib.pyplot as plt
 class Stixel:
     def __init__(self, x, y_t, y_b, depth=8.0):
         self.column = x
-        self.top_row = y_t
-        self.bottom_row = y_b
+        self.top = y_t
+        self.bottom = y_b
         self.depth = depth
         self.scale_by_grid()
 
     def __repr__(self):
-        return f"{self.column},{self.top_row},{self.bottom_row},{self.depth}"
+        return f"{self.column},{self.top},{self.bottom},{self.depth}"
 
     def scale_by_grid(self, grid_step=8):
         self.column = self.column * grid_step
-        self.top_row = self.top_row * grid_step
-        self.bottom_row = self.bottom_row * grid_step
-        if self.bottom_row > 1200 or self.top_row > 1200 or self.column > 1920:
+        self.top = self.top * grid_step
+        self.bottom = self.bottom * grid_step
+        if self.bottom > 1200 or self.top > 1200 or self.column > 1920:
             print("nooo")
 
 
@@ -89,8 +89,8 @@ def draw_stixels_on_image(image, stixels: List[Stixel], stixel_width=8, alpha=0.
     stixels.sort(key=lambda x: x.depth, reverse=True)
     min_depth, max_depth = 0, 50
     for stixel in stixels:
-        top_left_x, top_left_y = stixel.column, stixel.top_row
-        bottom_left_x, bottom_left_y = stixel.column, stixel.bottom_row
+        top_left_x, top_left_y = stixel.column, stixel.top
+        bottom_left_x, bottom_left_y = stixel.column, stixel.bottom
         color = get_color_from_depth(stixel.depth, min_depth, max_depth)
         bottom_right_x = bottom_left_x + stixel_width
         overlay = image.copy()
@@ -127,6 +127,7 @@ class StixelNExTInterpreter:
         s2 = hysteresis_threshold if hysteresis_threshold else self.s2
         self.stixel_list = extract_stixels(prediction_mtx_numpy, s1=s1, s2=s2)
         self.bottom_pts = prediction_mtx_numpy[1]
+        return self.stixel_list
 
     def show_stixel(self, pil_image):
         image_with_stixel = draw_stixels_on_image(pil_image, self.stixel_list)

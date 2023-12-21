@@ -3,12 +3,14 @@ import wandb
 import yaml
 import time
 import numpy as np
-from torchmetrics.classification import BinaryROC
+
 from torch.utils.data import DataLoader
-from sklearn import metrics
+from sklearn.metrics import make_scorer
 
 from models.ConvNeXt import ConvNeXt
-from dataloader.stixel_multicut import MultiCutStixelData, feature_transforming, target_transforming
+from dataloader.stixel_multicut import MultiCutStixelData
+from dataloader.stixel_multicut_interpreter import StixelNExTInterpreter
+from metrics.PrecisionRecall import evaluate_stixels, plot_precision_recall_curve
 from utilities.visualization import create_sample_comparison, show_data_pair, plot_roc_curve
 
 
@@ -24,42 +26,51 @@ def main():
     # Data loading
     testing_data = MultiCutStixelData(data_dir=config['data_path'],
                                       phase='testing',
-                                      transform=feature_transforming,
-                                      target_transform=target_transforming)
+                                      transform=None,
+                                      target_transform=None,
+                                      return_original_image=True)
     testing_dataloader = DataLoader(testing_data, batch_size=config['batch_size'],
-                                    num_workers=config['resources']['test_worker'],
-                                    pin_memory=True,
-                                    shuffle=False,
-                                    drop_last=True)
+                                num_workers=config['resources']['test_worker'], pin_memory=True, shuffle=True,
+                                drop_last=True)
 
     # Set up the Model
-    model = ConvNeXt(depths=[3]).to(device)
+    model = ConvNeXt(stem_features=config['nn']['stem_features'],
+                     depths=config['nn']['depths'],
+                     widths=config['nn']['widths'],
+                     drop_p=config['nn']['drop_p'],
+                     out_channels=2).to(device)
     weights_file = config['weights_file']
     model.load_state_dict(torch.load("saved_models/" + weights_file))
     print(f'Weights loaded from: {weights_file}')
 
-    # Set up the Metric, 21 means 0.05 steps per threshold
-    roc_curve = BinaryROC(thresholds=21)
 
     # Investigate some selected data
     if config['explore_data']:
-        test_features, test_labels = next(iter(testing_dataloader))
-        # Send to GPU
-        data = test_features.to(device)
-        start = time.process_time_ns()
-        output = model(data)
-        t_infer = time.process_time_ns() - start
-        # Fetch from GPU
+        test_features, test_labels, image = next(iter(testing_dataloader))
+        # inference
+        sample = test_features.to(device)
+        output = model(sample)
         output = output.cpu().detach()
-        test_features = test_features.cpu().detach()
-        # ROC
-        fpr, tpr, thresholds = roc_curve(output, test_labels.squeeze().to(torch.int))
-        idx = find_fpr_index(fpr, fpr_limit)
-        plot_roc_curve(fpr, tpr, thres_idx=idx, display=True)
-        # Scatter & Comparison
-        sample_img = create_sample_comparison(test_features, output, test_labels, t_infer=t_infer,
-                                              threshold=thresholds.numpy()[idx])
-        show_data_pair(sample_img)
+        # interpretation
+        stixel_reader = StixelNExTInterpreter(detection_threshold=config['pred_threshold'],
+                                                   hysteresis_threshold=config['pred_threshold'] - 0.05)
+        target_stixel = stixel_reader.extract_stixel_from_prediction(test_labels[0])
+        prediction_stixel = stixel_reader.extract_stixel_from_prediction(output[0])
+
+        thresholds = np.linspace(0.01, 1.0, num=100)
+        precision_values = []
+        recall_values = []
+
+        # Generate precision and recall values at various thresholds
+        for iou in thresholds:
+            print(f'Threshold: {iou}')
+            precision, recall = evaluate_stixels(prediction_stixel, target_stixel, iou_threshold=iou)
+            precision_values.append(precision)
+            recall_values.append(recall)
+            print(f'Precision: {precision}, Recall: {recall}')
+
+        plot_precision_recall_curve(recall_values, precision_values)
+
 
     # Create an export of analysed data incl. samples and ROC curve
     if config['logging']['activate']:
@@ -77,56 +88,6 @@ def main():
                                   },
                                   tags=["metrics", "testing"]
                                   )
-
-        for batch_idx, (samples, targets) in enumerate(testing_dataloader):
-            # send data to GPU
-            samples = samples.to(device)
-            start = time.process_time_ns()
-            output = model(samples)
-            t_infer = time.process_time_ns() - start
-            # fetch data from GPU
-            output = output.cpu().detach()
-            # Attach to ROC curve
-            fpr, tpr, thresholds = roc_curve(output, targets.squeeze().to(torch.int))
-            # https://github.com/wandb/wandb/issues/1076
-            # wandb_logger.log({"roc": wandb.plot.roc_curve(targets, output)})
-
-            if batch_idx % 100 == 0:
-                # Create Image Sample
-                samples = samples.cpu().detach()
-                idx = find_fpr_index(fpr, fpr_limit)
-                threshold = thresholds.numpy()[idx]
-                sample_img = create_sample_comparison(samples, output, targets, t_infer=t_infer,
-                                                      threshold=threshold)
-                wandb_image = wandb.Image(sample_img,
-                                          caption=f"Batch-ID= {batch_idx}\nTop: Output\nBottom: Target")
-                wandb_logger.log({"Examples": wandb_image})
-                # Create ROC snippet
-                sample_roc = plot_roc_curve(fpr, tpr, thres_idx=idx)
-                sample_auc = np.round(metrics.auc(fpr, tpr), decimals=3)
-                wandb_roc = wandb.Image(sample_roc,
-                                        caption=f"Batch-ID= {batch_idx}\nROC with {threshold}\nAUC: {sample_auc}")
-                wandb_logger.log({"Examples ROC": wandb_roc})
-
-        fpr, tpr, thresholds = roc_curve.compute()
-        # plot_roc_curve(fpr, tpr, thres_idx=find_threshold_index(thresholds, threshold), display=True)
-
-        data = [[x, y] for (x, y) in zip(fpr, tpr)]
-        table = wandb.Table(data=data, columns=["False Positive Rate", "True Positive Rate"])
-        wandb_logger.log({"ROC curve": wandb.plot.line(table, "True Positive Rate", "False Positive Rate",
-                                                       title=f"ROC Curve over {testing_data.__len__()} samples")})
-        wandb_logger.log({"AUC": metrics.auc(fpr, tpr)})
-
-
-def find_fpr_index(fpr_array, fpr):
-    fpr_array = fpr_array.numpy()
-    fpr_idx = np.where(fpr_array >= fpr)
-    return fpr_idx[0][0]
-
-def find_threshold_index(thres_array, threshold):
-    thres_array = thres_array.numpy().round(decimals=2)
-    threshold_idx = np.where(thres_array == threshold)
-    return threshold_idx
 
 
 if __name__ == '__main__':
