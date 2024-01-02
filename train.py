@@ -62,6 +62,7 @@ def main():
     # Loss function
     loss_fn = StixelLoss(alpha=config['loss']['alpha'],
                          beta=config['loss']['beta'],
+                         gamma=config['loss']['gamma'],
                          threshold=config['pred_threshold'])
 
     # Optimizer definition
@@ -73,6 +74,9 @@ def main():
                                   config={
                                       "learning_rate": config['learning_rate'],
                                       "loss_function": type(loss_fn).__name__,
+                                      "loss_alpha": config['loss']['alpha'],
+                                      "loss_beta": config['loss']['beta'],
+                                      "loss_gamma": config['loss']['gamma'],
                                       "architecture": type(model).__name__,
                                       "dataset": training_data.name,
                                       "epochs": config['num_epochs'],

@@ -17,15 +17,30 @@ class StixelLoss(nn.Module):
     def forward(self, inputs, targets):
         loss_bce = self.bce_loss(inputs, targets.squeeze(0))
         loss_maximum_cuts = self.limit_num_cuts(inputs)
-        loss_dense_pred = self.dense_pred(inputs)
-        return self.alpha * loss_bce + self.beta * loss_maximum_cuts +self.gamma * loss_dense_pred
+        loss_dense_pred = self.avoid_dense_predictions(inputs)
+        print(f'loss_bce: {self.alpha * loss_bce}, loss_maximum_cuts: {self.beta * loss_maximum_cuts}, loss_dense_pred: {self.gamma * loss_dense_pred}')
+        return self.alpha * loss_bce + self.beta * loss_maximum_cuts + self.gamma * loss_dense_pred
 
     def limit_num_cuts(self, inputs):
-        mask = inputs[0] > self.threshold
-        penalties = mask.sum(dim=0) - self.offset
-        penalties = penalties.clamp(min=0)  # set negative values to 0
-        return penalties.mean()
+        num_cuts_loss = 0.0
+        for sample in inputs:
+            mask = sample[0] > self.threshold
+            num_cuts_loss += mask.sum()
+        return num_cuts_loss
 
     def avoid_dense_predictions(self, inputs):
-        # TODO: penalty for dense bottom_cut predictions (inputs[..., 1])
-        return 0
+        dense_loss = 0.0
+        for sample in inputs:
+            mask = sample[1] > self.threshold
+            for col in range(mask.shape[1]):
+                column = mask[:, col]
+                i_before = False
+                for i in range(len(column) - 1):
+                    if column[i]:
+                        if not i_before:
+                            pass
+                        else:
+                            distance = i - i_before
+                            dense_loss += 1 / (distance ** 3)
+                        i_before = i
+        return dense_loss
