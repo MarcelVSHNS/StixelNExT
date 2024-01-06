@@ -4,6 +4,10 @@ import torch
 import cv2
 from PIL import Image
 import matplotlib.pyplot as plt
+import yaml
+
+with open('config.yaml') as yamlfile:
+    config = yaml.load(yamlfile, Loader=yaml.FullLoader)
 
 
 class Stixel:
@@ -17,12 +21,10 @@ class Stixel:
     def __repr__(self):
         return f"{self.column},{self.top},{self.bottom},{self.depth}"
 
-    def scale_by_grid(self, grid_step=8):
+    def scale_by_grid(self, grid_step=config['grid_step']):
         self.column = self.column * grid_step
         self.top = self.top * grid_step
         self.bottom = self.bottom * grid_step
-        if self.bottom > 1200 or self.top > 1200 or self.column > 1920:
-            print("nooo")
 
 
 def extract_stixels(prediction, s1, s2):
@@ -65,7 +67,7 @@ def extract_stixels(prediction, s1, s2):
         stixel_start = 0
         for row in range(num_rows):
             if in_stixel:
-                if stixel_repr[row][col] < s2 or bottom_repr[row][col]  >= s1:
+                if stixel_repr[row][col] < s2 or bottom_repr[row][col] >= s1:
                     stixels.append(Stixel(col, stixel_start, row))
                     in_stixel = False
             else:
@@ -83,7 +85,7 @@ def get_color_from_depth(depth, min_depth, max_depth):
     return tuple(int(c * 255) for c in color)
 
 
-def draw_stixels_on_image(image, stixels: List[Stixel], stixel_width=8, alpha=0.1):
+def draw_stixels_on_image(image, stixels: List[Stixel], stixel_width=config['grid_step'], alpha=0.1):
     image = np.array(image.numpy())
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     stixels.sort(key=lambda x: x.depth, reverse=True)
