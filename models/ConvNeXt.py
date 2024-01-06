@@ -3,6 +3,7 @@ from torch import Tensor
 from typing import List
 from torchvision.ops import StochasticDepth
 import torch
+import yaml
 
 
 class ConvNextStem(nn.Sequential):
@@ -97,9 +98,9 @@ class ConvNextEncoder(nn.Module):
         return x
 
 class Head(nn.Module):
-    def __init__(self, out_features, out_channels):
+    def __init__(self, out_features, out_channels, target_height, target_width):
         super().__init__()
-        self.upsample = nn.Upsample(size=(150, 240), mode='bilinear', align_corners=False)
+        self.upsample = nn.Upsample(size=(target_height, target_width), mode='bilinear', align_corners=False)
         self.decoder = nn.Conv2d(out_features, out_channels, kernel_size=1, stride=1)
         self.activation = nn.Sigmoid()
 
@@ -129,10 +130,10 @@ class Head(nn.Module):
 
 class ConvNeXt(nn.Module):
     def __init__(self, in_channels=3, stem_features=64, depths=[3, 3, 9, 3], widths=[96, 192, 384, 768],
-                 drop_p: float = .0, out_channels: int = 2):
+                 drop_p: float = .0, out_channels: int = 2, target_height: int = 150, target_width: int = 240):
         super().__init__()
         self.encoder = ConvNextEncoder(in_channels, stem_features, depths, widths, drop_p)
-        self.decoder = Head(self.encoder.stages[-1].outfeatures, out_channels)
+        self.decoder = Head(self.encoder.stages[-1].outfeatures, out_channels, target_height, target_width)
 
     def forward(self, x):
         x = self.encoder(x)

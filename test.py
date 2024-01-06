@@ -5,13 +5,11 @@ import time
 import numpy as np
 
 from torch.utils.data import DataLoader
-from sklearn.metrics import make_scorer
 
 from models.ConvNeXt import ConvNeXt
 from dataloader.stixel_multicut import MultiCutStixelData
 from dataloader.stixel_multicut_interpreter import StixelNExTInterpreter
 from metrics.PrecisionRecall import evaluate_stixels, plot_precision_recall_curve, draw_stixel_on_image_prcurve
-from utilities.visualization import create_sample_comparison, show_data_pair, plot_roc_curve
 
 
 # 0.1 Get cpu or gpu device for training.

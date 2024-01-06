@@ -15,7 +15,6 @@ from utilities.visualization import draw_stixels_on_image
 
 # 0.1 Get cpu or gpu device for training.
 device = "cuda" if torch.cuda.is_available() else "cpu"
-print(device)
 # 0.2 Load configfile
 with open('config.yaml') as yamlfile:
     config = yaml.load(yamlfile, Loader=yaml.FullLoader)
@@ -26,21 +25,21 @@ def main():
     # Load data
     training_data = MultiCutStixelData(data_dir=config['data_path'],
                                        phase='training',
-                                       transform=None,
+                                       transform=feature_transform_resize,
                                        target_transform=target_transform_gaussian_blur)               # target_transform_gaussian_blur
     train_dataloader = DataLoader(training_data, batch_size=config['batch_size'],
                                   num_workers=config['resources']['train_worker'], pin_memory=True, drop_last=True)
 
     validation_data = MultiCutStixelData(data_dir=config['data_path'],
                                          phase='validation',
-                                         transform=None,
+                                         transform=feature_transform_resize,
                                          target_transform=target_transform_gaussian_blur)
     val_dataloader = DataLoader(validation_data, batch_size=config['batch_size'],
                                 num_workers=config['resources']['val_worker'], pin_memory=True, shuffle=False, drop_last=True)
 
     testing_data = MultiCutStixelData(data_dir=config['data_path'],
                                       phase='testing',
-                                      transform=None,
+                                      transform=feature_transform_resize,
                                       target_transform=None,
                                       return_original_image=True)
     test_dataloader = DataLoader(testing_data, batch_size=config['batch_size'],
@@ -52,7 +51,8 @@ def main():
                      depths=config['nn']['depths'],
                      widths=config['nn']['widths'],
                      drop_p=config['nn']['drop_p'],
-                     out_channels=2).to(device)
+                     target_height=int(config['img_height'] / config['grid_step']),
+                     target_width=int(config['img_width'] / config['grid_step'])).to(device)
 
     # Load Weights
     if config['load_weights']:
@@ -111,7 +111,9 @@ def main():
 
     # Inspect model
     if config['inspect_model']:
-        summary(model, (3, 1200, 1920))
+        height = image[0].shape[0]
+        width = image[0].shape[1]
+        summary(model, (3, height, width))
         data = test_features.to(device)
         print("Input shape: " + str(data.shape))
         print("Output shape: " + str(model(data).shape))

@@ -54,7 +54,8 @@ class MultiCutStixelData(Dataset):
             target_labels = self.target_transform(target_labels)
         # data type needs to be like the NN layer like .to(torch.float32)
         if self.return_original_image:
-            return feature_image, target_labels, cv2.imread(img_path_full)
+            cv2_test_img = cv2.resize(cv2.imread(img_path_full), (config['img_width'], config['img_height']), interpolation=cv2.INTER_LINEAR)
+            return feature_image, target_labels, cv2_test_img
         else:
             return feature_image, target_labels
 
@@ -63,11 +64,9 @@ class MultiCutStixelData(Dataset):
             test_img_path = os.path.join(self.img_path, self.sample_map[0] + ".png")
             test_feature_image = read_image(test_img_path, ImageReadMode.RGB)
             channels, height, width = test_feature_image.shape
-            print("automatic img size detection")
             return {'height': height, 'width': width, 'channels': channels}
 
         else:
-            print("manual img size")
             return {'height': config['img_height'], 'width': config['img_width'], 'channels': 3}
 
     def _preparation_of_target_label(self, y_target: pandas.DataFrame, grid_step: int = config['grid_step']) -> torch.tensor:
@@ -92,25 +91,22 @@ class MultiCutStixelData(Dataset):
         for x, y_t, y_b, cls in coordinates.astype(int):
             stixels.append(Stixel(x, y_t, y_b, cls))
         print(f"len: {len(stixels)}")
-        img = draw_stixels_on_image(tensor_image, stixels)
-        #img.show()
 
 
 def feature_transform_resize(x_features: torch.Tensor) -> torch.Tensor:
     x_features_resized = F.interpolate(x_features.unsqueeze(0), size=(config['img_height'], config['img_width']), mode='bilinear', align_corners=False)
-    print(x_features_resized.squeeze(0).shape)
     return x_features_resized.squeeze(0)
 
 
-def overlay_original(matrix: np.array, original: np.array) -> np.array:
+def _overlay_original(matrix: np.array, original: np.array) -> np.array:
     # calculate col-wise to equalize dense points
     max_vals = np.max(matrix, axis=0)
-    normalized_matrix = np.divide(matrix, max_vals, out=np.zeros_like(matrix), where=max_vals!=0)
+    normalized_matrix = np.divide(matrix, max_vals, out=np.zeros_like(matrix), where=max_vals != 0)
     return np.maximum(normalized_matrix, original)
 
 
 def target_transform_gaussian_blur(y_target: torch.Tensor) -> torch.Tensor:
     stixel_mtx = y_target.numpy()
-    stixel_mtx[0] = overlay_original(cv2.GaussianBlur(stixel_mtx[0], (3, 7), sigmaX=1.5, sigmaY=1.2), stixel_mtx[0])
-    stixel_mtx[1] = overlay_original(cv2.GaussianBlur(stixel_mtx[1], (7, 3), sigmaX=2.0, sigmaY=1.0), stixel_mtx[1])
+    stixel_mtx[0] = _overlay_original(cv2.GaussianBlur(stixel_mtx[0], (3, 7), sigmaX=1.5, sigmaY=1.2), stixel_mtx[0])
+    stixel_mtx[1] = _overlay_original(cv2.GaussianBlur(stixel_mtx[1], (7, 3), sigmaX=2.0, sigmaY=1.0), stixel_mtx[1])
     return torch.from_numpy(stixel_mtx).to(torch.float32)
