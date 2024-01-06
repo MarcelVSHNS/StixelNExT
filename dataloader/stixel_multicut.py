@@ -5,11 +5,15 @@ import pandas as pd
 from torch.utils.data import Dataset
 from torchvision.io import read_image, ImageReadMode
 import numpy as np
-from typing import List, Tuple
-from collections import defaultdict
+from typing import List
 import cv2
 from utilities.visualization import draw_stixels_on_image
 from dataloader.stixel_multicut_interpreter import Stixel
+import torch.nn.functional as F
+import yaml
+
+with open('config.yaml') as yamlfile:
+    config = yaml.load(yamlfile, Loader=yaml.FullLoader)
 
 
 def _fill_mtx_with_points(obj_mtx, points):
@@ -55,12 +59,18 @@ class MultiCutStixelData(Dataset):
             return feature_image, target_labels
 
     def _determine_image_size(self):
-        test_img_path = os.path.join(self.img_path, self.sample_map[0] + ".png")
-        test_feature_image = read_image(test_img_path, ImageReadMode.RGB)
-        channels, height, width = test_feature_image.shape
-        return {'height': height, 'width': width, 'channels': channels}
+        if config['img_width'] is None or config['img_height'] is None:
+            test_img_path = os.path.join(self.img_path, self.sample_map[0] + ".png")
+            test_feature_image = read_image(test_img_path, ImageReadMode.RGB)
+            channels, height, width = test_feature_image.shape
+            print("automatic img size detection")
+            return {'height': height, 'width': width, 'channels': channels}
 
-    def _preparation_of_target_label(self, y_target: pandas.DataFrame, grid_step: int = 8) -> torch.tensor:
+        else:
+            print("manual img size")
+            return {'height': config['img_height'], 'width': config['img_width'], 'channels': 3}
+
+    def _preparation_of_target_label(self, y_target: pandas.DataFrame, grid_step: int = config['grid_step']) -> torch.tensor:
         y_target['x'] = (y_target['x'] // grid_step).astype(int)
         y_target['yT'] = (y_target['yT'] // grid_step).astype(int)
         y_target['yB'] = (y_target['yB'] // grid_step).astype(int)
@@ -86,8 +96,10 @@ class MultiCutStixelData(Dataset):
         #img.show()
 
 
-def feature_transforming(x_features: torch.Tensor) -> torch.Tensor:
-    pass
+def feature_transform_resize(x_features: torch.Tensor) -> torch.Tensor:
+    x_features_resized = F.interpolate(x_features.unsqueeze(0), size=(config['img_height'], config['img_width']), mode='bilinear', align_corners=False)
+    print(x_features_resized.squeeze(0).shape)
+    return x_features_resized.squeeze(0)
 
 
 def overlay_original(matrix: np.array, original: np.array) -> np.array:

@@ -8,7 +8,7 @@ import os
 from losses.stixel_loss import StixelLoss
 from models.ConvNeXt import ConvNeXt
 from engine import train_one_epoch, evaluate
-from dataloader.stixel_multicut import MultiCutStixelData, target_transform_gaussian_blur
+from dataloader.stixel_multicut import MultiCutStixelData, target_transform_gaussian_blur, feature_transform_resize
 from dataloader.stixel_multicut_interpreter import StixelNExTInterpreter
 from utilities.visualization import draw_stixels_on_image
 
