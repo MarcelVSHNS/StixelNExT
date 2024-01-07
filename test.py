@@ -8,7 +8,7 @@ import numpy as np
 import pickle
 from torch.utils.data import DataLoader
 from models.ConvNeXt import ConvNeXt
-from dataloader.stixel_multicut import MultiCutStixelData
+from dataloader.stixel_multicut import MultiCutStixelData, feature_transform_resize
 from dataloader.stixel_multicut_interpreter import StixelNExTInterpreter
 from metrics.PrecisionRecall import evaluate_stixels, plot_precision_recall_curve, draw_stixel_on_image_prcurve
 
@@ -23,7 +23,7 @@ with open('config.yaml') as yamlfile:
 def create_result_file(model, weights_file: str):
     testing_data = MultiCutStixelData(data_dir=config['data_path'],
                                       phase='testing',
-                                      transform=None,
+                                      transform=feature_transform_resize,
                                       target_transform=None,
                                       return_name=True)
     testing_dataloader = DataLoader(testing_data, batch_size=config['batch_size'],
@@ -48,8 +48,9 @@ def create_result_file(model, weights_file: str):
         for i in range(output.shape[0]):
             stixel_lists.append({"sample": names[i], "prediction": stixel_reader.extract_stixel_from_prediction(output[i])})
 
-    with open(weights_file, 'wb') as file:
+    with open(os.path.join("results", checkpoint + ".pkl"), 'wb') as file:
         pickle.dump(stixel_lists, file)
+    print(f"{checkpoint} exported to -results!")
 
 
 def main():

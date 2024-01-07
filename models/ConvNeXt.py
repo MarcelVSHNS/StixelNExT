@@ -97,6 +97,7 @@ class ConvNextEncoder(nn.Module):
             x = stage(x)
         return x
 
+
 class Head(nn.Module):
     def __init__(self, out_features, out_channels, target_height, target_width):
         super().__init__()

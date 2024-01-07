@@ -151,7 +151,7 @@ def main():
 
         if config['export_results']:
             best_checkpoint = min(checkpoints, key=lambda x: x['test-error'])
-            create_result_file(model, best_checkpoint)
+            create_result_file(model, best_checkpoint['checkpoint'])
 
 
 if __name__ == '__main__':
