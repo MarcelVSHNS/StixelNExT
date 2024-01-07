@@ -10,7 +10,7 @@ from models.ConvNeXt import ConvNeXt
 from engine import train_one_epoch, evaluate
 from dataloader.stixel_multicut import MultiCutStixelData, target_transform_gaussian_blur, feature_transform_resize
 from dataloader.stixel_multicut_interpreter import StixelNExTInterpreter
-from utilities.visualization import draw_stixels_on_image
+from test import create_result_file
 
 
 # 0.1 Get cpu or gpu device for training.
@@ -129,6 +129,7 @@ def main():
 
     # Training
     if config['training']:
+        checkpoints = []
         for epoch in range(config['num_epochs']):
             print(f"\n   Epoch {epoch + 1}\n----------------------------------------------------------------")
             train_one_epoch(train_dataloader, model, loss_fn, optimizer,
@@ -137,15 +138,20 @@ def main():
                                  device=device, writer=wandb_logger)
             # Save model
             if config['logging']['activate']:
-                saved_models_path = os.path.join('saved_models',wandb_logger.name)
+                saved_models_path = os.path.join('saved_models', wandb_logger.name)
                 os.makedirs(saved_models_path, exist_ok=True)
                 weights_name = f"StixelNExT_{wandb_logger.name}_epoch-{epoch}_test-error-{test_error}.pth"
                 torch.save(model.state_dict(), os.path.join(saved_models_path, weights_name))
+                checkpoints.append({'checkpoint': weights_name, 'test-error': test_error})
                 print("Saved PyTorch Model State to " + os.path.join(saved_models_path, weights_name))
             step_time = datetime.now() - overall_start_time
             print("Time elapsed: {}".format(step_time))
         overall_time = datetime.now() - overall_start_time
         print(f"Finished training in {str(overall_time).split('.')[0]}")
+
+        if config['export_results']:
+            best_checkpoint = min(checkpoints, key=lambda x: x['test-error'])
+            create_result_file(model, best_checkpoint)
 
 
 if __name__ == '__main__':

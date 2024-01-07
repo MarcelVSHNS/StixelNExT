@@ -26,7 +26,7 @@ def _fill_mtx_with_points(obj_mtx, points):
 class MultiCutStixelData(Dataset):
     # 1. Implement __init()__
     def __init__(self, data_dir, phase, annotation_dir="targets_from_lidar", img_dir="STEREO_LEFT", transform=None,
-                 target_transform=None, return_original_image=False):
+                 target_transform=None, return_original_image=False, return_name=False):
         self.data_dir: str = os.path.join(data_dir, phase)
         self.img_path: str = os.path.join(self.data_dir, img_dir)
         self.annotation_path: str= os.path.join(self.data_dir, annotation_dir)
@@ -34,6 +34,7 @@ class MultiCutStixelData(Dataset):
         self.sample_map: List[str] = [os.path.splitext(filename)[0] for filename in filenames]
         self.transform = transform
         self.return_original_image: bool = return_original_image
+        self.return_name: bool = return_name
         self.target_transform = target_transform
         self.name: str = os.path.basename(data_dir)
         self.img_size = self._determine_image_size()
@@ -56,6 +57,8 @@ class MultiCutStixelData(Dataset):
         if self.return_original_image:
             cv2_test_img = cv2.resize(cv2.imread(img_path_full), (config['img_width'], config['img_height']), interpolation=cv2.INTER_LINEAR)
             return feature_image, target_labels, cv2_test_img
+        elif self.return_name:
+            return feature_image, target_labels, img_path_full
         else:
             return feature_image, target_labels
 
