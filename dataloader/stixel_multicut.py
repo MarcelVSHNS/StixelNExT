@@ -26,7 +26,7 @@ def _fill_mtx_with_points(obj_mtx, points):
 class MultiCutStixelData(Dataset):
     # 1. Implement __init()__
     def __init__(self, data_dir, phase, annotation_dir="targets_from_lidar", img_dir="STEREO_LEFT", transform=None,
-                 target_transform=None, return_original_image=False):
+                 target_transform=None, return_original_image=False, return_name=False):
         self.data_dir: str = os.path.join(data_dir, phase)
         self.img_path: str = os.path.join(self.data_dir, img_dir)
         self.annotation_path: str= os.path.join(self.data_dir, annotation_dir)
@@ -34,6 +34,7 @@ class MultiCutStixelData(Dataset):
         self.sample_map: List[str] = [os.path.splitext(filename)[0] for filename in filenames]
         self.transform = transform
         self.return_original_image: bool = return_original_image
+        self.return_name: bool = return_name
         self.target_transform = target_transform
         self.name: str = os.path.basename(data_dir)
         self.img_size = self._determine_image_size()
@@ -54,7 +55,13 @@ class MultiCutStixelData(Dataset):
             target_labels = self.target_transform(target_labels)
         # data type needs to be like the NN layer like .to(torch.float32)
         if self.return_original_image:
-            return feature_image, target_labels, cv2.imread(img_path_full)
+            # a consistent batch stack is mandatory
+            cv2_test_img = cv2.imread(img_path_full)
+            if cv2_test_img.shape != (self.img_size['height'], self.img_size['width'], 3):
+                cv2_test_img = cv2.resize(cv2_test_img, (self.img_size['width'], self.img_size['width']), interpolation=cv2.INTER_LINEAR)
+            return feature_image, target_labels, cv2_test_img
+        elif self.return_name:
+            return feature_image, target_labels, img_path_full
         else:
             return feature_image, target_labels
 
@@ -63,11 +70,9 @@ class MultiCutStixelData(Dataset):
             test_img_path = os.path.join(self.img_path, self.sample_map[0] + ".png")
             test_feature_image = read_image(test_img_path, ImageReadMode.RGB)
             channels, height, width = test_feature_image.shape
-            print("automatic img size detection")
             return {'height': height, 'width': width, 'channels': channels}
 
         else:
-            print("manual img size")
             return {'height': config['img_height'], 'width': config['img_width'], 'channels': 3}
 
     def _preparation_of_target_label(self, y_target: pandas.DataFrame, grid_step: int = config['grid_step']) -> torch.tensor:
@@ -98,7 +103,6 @@ class MultiCutStixelData(Dataset):
 
 def feature_transform_resize(x_features: torch.Tensor) -> torch.Tensor:
     x_features_resized = F.interpolate(x_features.unsqueeze(0), size=(config['img_height'], config['img_width']), mode='bilinear', align_corners=False)
-    print(x_features_resized.squeeze(0).shape)
     return x_features_resized.squeeze(0)
 
 

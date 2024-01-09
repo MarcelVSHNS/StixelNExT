@@ -1,6 +1,10 @@
+import yaml
+# 0.1 Load configfile
+with open('config.yaml') as yamlfile:
+    config = yaml.load(yamlfile, Loader=yaml.FullLoader)
+
 import torch
 import wandb
-import yaml
 from torch.utils.data import DataLoader
 from torchsummary import summary
 from datetime import datetime
@@ -8,50 +12,56 @@ import os
 from losses.stixel_loss import StixelLoss
 from models.ConvNeXt import ConvNeXt
 from engine import train_one_epoch, evaluate
-from dataloader.stixel_multicut import MultiCutStixelData, target_transform_gaussian_blur, feature_transform_resize
 from dataloader.stixel_multicut_interpreter import StixelNExTInterpreter
 from test import create_result_file
+from dataloader.stixel_multicut import MultiCutStixelData, target_transform_gaussian_blur as target_transform
+if config['dataset'] == "kitti":
+    from dataloader.stixel_multicut import feature_transform_resize as feature_transform
+else:
+    feature_transform = None
 
-
-# 0.1 Get cpu or gpu device for training.
+# 0.2 Get cpu or gpu device for training.
 device = "cuda" if torch.cuda.is_available() else "cpu"
-print(device)
-# 0.2 Load configfile
-with open('config.yaml') as yamlfile:
-    config = yaml.load(yamlfile, Loader=yaml.FullLoader)
 overall_start_time = datetime.now()
 
 
 def main():
+    test_dataloader = None
     # Load data
-    training_data = MultiCutStixelData(data_dir=config['data_path'],
+    dataset_dir = os.path.join(config['data_path'], config['dataset'])
+    # Training data
+    training_data = MultiCutStixelData(data_dir=dataset_dir,
                                        phase='training',
-                                       transform=None,
-                                       target_transform=target_transform_gaussian_blur)               # target_transform_gaussian_blur
+                                       transform=feature_transform,
+                                       target_transform=target_transform)               # target_transform_gaussian_blur
     train_dataloader = DataLoader(training_data, batch_size=config['batch_size'],
                                   num_workers=config['resources']['train_worker'], pin_memory=True, drop_last=True)
-
-    validation_data = MultiCutStixelData(data_dir=config['data_path'],
+    # Validation data
+    validation_data = MultiCutStixelData(data_dir=dataset_dir,
                                          phase='validation',
-                                         transform=None,
-                                         target_transform=target_transform_gaussian_blur)
+                                         transform=feature_transform,
+                                         target_transform=target_transform)
     val_dataloader = DataLoader(validation_data, batch_size=config['batch_size'],
                                 num_workers=config['resources']['val_worker'], pin_memory=True, shuffle=False, drop_last=True)
 
-    testing_data = MultiCutStixelData(data_dir=config['data_path'],
-                                      phase='testing',
-                                      transform=None,
-                                      target_transform=None,
-                                      return_original_image=True)
-    test_dataloader = DataLoader(testing_data, batch_size=config['batch_size'],
-                                num_workers=config['resources']['test_worker'], pin_memory=True, shuffle=True,
-                                drop_last=True)
+    # Testing data
+    if config['explore_data'] or config['test_loss'] or config['inspect_model']:
+        testing_data = MultiCutStixelData(data_dir=dataset_dir,
+                                          phase='testing',
+                                          transform=feature_transform,
+                                          target_transform=None,
+                                          return_original_image=True)
+        test_dataloader = DataLoader(testing_data, batch_size=config['batch_size'],
+                                     num_workers=config['resources']['test_worker'], pin_memory=True, shuffle=True,
+                                     drop_last=True)
 
     # Define Model
     model = ConvNeXt(stem_features=config['nn']['stem_features'],
                      depths=config['nn']['depths'],
                      widths=config['nn']['widths'],
                      drop_p=config['nn']['drop_p'],
+                     target_height=int(training_data.img_size['height'] / config['grid_step']),
+                     target_width=int(training_data.img_size['width'] / config['grid_step']),
                      out_channels=2).to(device)
 
     # Load Weights
@@ -88,8 +98,8 @@ def main():
         wandb_logger = None
 
     # Explore data
-    test_features, test_labels, image = next(iter(test_dataloader))
     if config['explore_data']:
+        test_features, test_labels, image = next(iter(test_dataloader))
         pick = -1
         result_interpreter = StixelNExTInterpreter(detection_threshold=config['pred_threshold'],
                                                    hysteresis_threshold=config['pred_threshold'] - 0.05)
@@ -111,7 +121,10 @@ def main():
 
     # Inspect model
     if config['inspect_model']:
-        summary(model, (3, 1200, 1920))
+        test_features, test_labels, image = next(iter(test_dataloader))
+        height = image[0].shape[0]
+        width = image[0].shape[1]
+        summary(model, (3, height, width))
         data = test_features.to(device)
         print("Input shape: " + str(data.shape))
         print("Output shape: " + str(model(data).shape))
@@ -120,6 +133,7 @@ def main():
 
     # testing loss
     if config['test_loss']:
+        test_features, test_labels, image = next(iter(test_dataloader))
         data = test_features.to(device)
         output = model(data)
         target = test_labels.to(device)
@@ -133,10 +147,10 @@ def main():
             train_one_epoch(train_dataloader, model, loss_fn, optimizer,
                             device=device, writer=wandb_logger)
             test_error = evaluate(val_dataloader, model, loss_fn,
-                                 device=device, writer=wandb_logger)
+                                  device=device, writer=wandb_logger)
             # Save model
             if config['logging']['activate']:
-                saved_models_path = os.path.join('saved_models',wandb_logger.name)
+                saved_models_path = os.path.join('saved_models', wandb_logger.name)
                 os.makedirs(saved_models_path, exist_ok=True)
                 weights_name = f"StixelNExT_{wandb_logger.name}_epoch-{epoch}_test-error-{test_error}.pth"
                 torch.save(model.state_dict(), os.path.join(saved_models_path, weights_name))
@@ -149,7 +163,7 @@ def main():
 
         if config['export_results']:
             best_checkpoint = min(checkpoints, key=lambda x: x['test-error'])
-            create_result_file(model, best_checkpoint)
+            create_result_file(model, best_checkpoint['checkpoint'])
 
 
 if __name__ == '__main__':

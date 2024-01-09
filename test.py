@@ -1,8 +1,11 @@
-import os.path
+import yaml
+# 0.1 Load configfile
+with open('config.yaml') as yamlfile:
+    config = yaml.load(yamlfile, Loader=yaml.FullLoader)
 
+import os.path
 import torch
 import wandb
-import yaml
 import time
 import numpy as np
 import pickle
@@ -11,19 +14,19 @@ from models.ConvNeXt import ConvNeXt
 from dataloader.stixel_multicut import MultiCutStixelData
 from dataloader.stixel_multicut_interpreter import StixelNExTInterpreter
 from metrics.PrecisionRecall import evaluate_stixels, plot_precision_recall_curve, draw_stixel_on_image_prcurve
+if config['dataset'] == "kitti":
+    from dataloader.stixel_multicut import feature_transform_resize as feature_transform
+else:
+    feature_transform = None
 
-
-# 0.1 Get cpu or gpu device for training.
+# 0.2 Get cpu or gpu device for training.
 device = "cuda" if torch.cuda.is_available() else "cpu"
-# 0.2 Load configfile
-with open('config.yaml') as yamlfile:
-    config = yaml.load(yamlfile, Loader=yaml.FullLoader)
 
 
 def create_result_file(model, weights_file: str):
-    testing_data = MultiCutStixelData(data_dir=config['data_path'],
+    testing_data = MultiCutStixelData(data_dir=os.path.join(config['data_path'], config['dataset']),
                                       phase='testing',
-                                      transform=None,
+                                      transform=feature_transform,
                                       target_transform=None,
                                       return_name=True)
     testing_dataloader = DataLoader(testing_data, batch_size=config['batch_size'],
@@ -50,6 +53,7 @@ def create_result_file(model, weights_file: str):
 
     with open(weights_file, 'wb') as file:
         pickle.dump(stixel_lists, file)
+    print(f"{checkpoint} exported to -results!")
 
 
 def main():
