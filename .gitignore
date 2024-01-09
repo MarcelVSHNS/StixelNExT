@@ -154,19 +154,14 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 
-data/training
-data/validation
-data/testing
-data/validation_data.csv
-data/training_data.csv
-data/testing_data.csv
-saved_models/
-wandb/
-config.yaml
-Prediction.csv
-Target.csv
-image_export
-data_seg
+saved_models/*
+!saved_models/.gitignore
+results/*
+!results/.gitignore
+
+wandb
 data
 dataset
+
+config.yaml
 
