@@ -4,7 +4,7 @@ with open('config.yaml') as yamlfile:
     config = yaml.load(yamlfile, Loader=yaml.FullLoader)
 
 import os
-import pickle
+import pandas as pd
 import time
 import torch
 from torch.utils.data import DataLoader
@@ -21,7 +21,8 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 def create_result_file(model, weights_file: str, output_path="predictions"):
-    testing_data = MultiCutStixelData(data_dir=config['data_path'],
+    dataset_dir = os.path.join(config['data_path'], config['dataset'])
+    testing_data = MultiCutStixelData(data_dir=dataset_dir,
                                       phase='testing',
                                       transform=feature_transform,
                                       target_transform=None,
@@ -47,10 +48,16 @@ def create_result_file(model, weights_file: str, output_path="predictions"):
         output = output.cpu().detach()
         for i in range(output.shape[0]):
             stixel_lists.append({"sample": names[i], "prediction": stixel_reader.extract_stixel_from_prediction(output[i]),
-                                 "t_infer": t_infer})
+                                 "t_infer": t_infer/ config["batch_size"]})
+        print(f"Batch {batch_idx+1} of {len(testing_dataloader)} finished.")
 
-    with open(os.path.join(output_path, checkpoint + ".pkl"), 'wb') as file:
-        pickle.dump(stixel_lists, file)
+    output_path_with_checkpoint = os.path.join(output_path, checkpoint.split("_")[1])
+    os.makedirs(output_path_with_checkpoint, exist_ok=True)
+    for sample in stixel_lists:
+        df = pd.DataFrame(vars(stixel) for stixel in sample["prediction"])
+        df.insert(0, "img_name", sample["sample"] + ".png")
+        df.columns = ["img_path", "x", "yT", "yB", "class", "depth"]
+        df.to_csv(os.path.join(output_path_with_checkpoint, sample["sample"]), index=False)
     print(f"{checkpoint} exported to {output_path}!")
 
 
@@ -61,7 +68,8 @@ def main():
                      widths=config['nn']['widths'],
                      drop_p=config['nn']['drop_p'],
                      out_channels=2).to(device)
-    create_result_file(model=model, weights_file=weights_file)
+    dataset_dir = os.path.join(config['data_path'], config['dataset'], "testing", "predictions_from_StixelNExT")
+    create_result_file(model=model, weights_file=weights_file, output_path=dataset_dir)
 
 
 if __name__ == '__main__':

@@ -61,7 +61,7 @@ class MultiCutStixelData(Dataset):
                 cv2_test_img = cv2.resize(cv2_test_img, (self.img_size['width'], self.img_size['width']), interpolation=cv2.INTER_LINEAR)
             return feature_image, target_labels, cv2_test_img
         elif self.return_name:
-            return feature_image, target_labels, img_path_full
+            return feature_image, target_labels, self.sample_map[idx]
         else:
             return feature_image, target_labels
 

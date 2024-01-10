@@ -156,8 +156,8 @@ cython_debug/
 
 saved_models/*
 !saved_models/.gitignore
-results/*
-!results/.gitignore
+predictions/*
+!predictions/.gitignore
 
 wandb
 data

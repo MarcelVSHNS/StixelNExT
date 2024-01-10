@@ -17,8 +17,16 @@ from utilities.evaluation import create_result_file
 from dataloader.stixel_multicut import MultiCutStixelData, target_transform_gaussian_blur as target_transform
 if config['dataset'] == "kitti":
     from dataloader.stixel_multicut import feature_transform_resize as feature_transform
+    config['grid_step'] = 4
+    config['img_height'] = 376
+    config['img_width'] = 1248
 else:
     feature_transform = None
+    config['grid_step'] = 8
+    config['img_height'] = None
+    config['img_width'] = None
+with open('config.yaml', 'w') as file:
+    yaml.dump(config, file, default_flow_style=False)
 
 # 0.2 Get cpu or gpu device for training.
 device = "cuda" if torch.cuda.is_available() else "cpu"

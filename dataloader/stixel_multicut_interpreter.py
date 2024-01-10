@@ -7,10 +7,11 @@ import matplotlib.pyplot as plt
 
 
 class Stixel:
-    def __init__(self, x, y_t, y_b, depth=8.0):
+    def __init__(self, x, y_t, y_b, depth=42.0):
         self.column = x
         self.top = y_t
         self.bottom = y_b
+        self.seg_class = -1
         self.depth = depth
         self.scale_by_grid()
 
