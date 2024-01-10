@@ -13,7 +13,7 @@ from losses.stixel_loss import StixelLoss
 from models.ConvNeXt import ConvNeXt
 from engine import train_one_epoch, evaluate
 from dataloader.stixel_multicut_interpreter import StixelNExTInterpreter
-from test import create_result_file
+from utilities.evaluation import create_result_file
 from dataloader.stixel_multicut import MultiCutStixelData, target_transform_gaussian_blur as target_transform
 if config['dataset'] == "kitti":
     from dataloader.stixel_multicut import feature_transform_resize as feature_transform
