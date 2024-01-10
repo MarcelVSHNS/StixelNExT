@@ -1,6 +1,10 @@
+import yaml
+# 0.1 Load configfile
+with open('config.yaml') as yamlfile:
+    config = yaml.load(yamlfile, Loader=yaml.FullLoader)
+
 import torch
 import wandb
-import yaml
 from torch.utils.data import DataLoader
 from torchsummary import summary
 from datetime import datetime
@@ -11,6 +15,11 @@ from engine import train_one_epoch, evaluate
 from dataloader.stixel_multicut import MultiCutStixelData, target_transform_gaussian_blur, feature_transform_resize
 from dataloader.stixel_multicut_interpreter import StixelNExTInterpreter
 from utilities.evaluation import create_result_file
+from dataloader.stixel_multicut import MultiCutStixelData, target_transform_gaussian_blur as target_transform
+if config['dataset'] == "kitti":
+    from dataloader.stixel_multicut import feature_transform_resize as feature_transform
+else:
+    feature_transform = None
 
 
 # 0.1 Get cpu or gpu device for training.
