@@ -51,7 +51,7 @@ def create_result_file(model, weights_file: str, output_path="predictions"):
                                  "t_infer": t_infer/ config["batch_size"]})
         print(f"Batch {batch_idx+1} of {len(testing_dataloader)} finished.")
 
-    output_path_with_checkpoint = os.path.join(output_path, checkpoint.split("_")[1])
+    output_path_with_checkpoint = os.path.join(output_path, checkpoint)
     os.makedirs(output_path_with_checkpoint, exist_ok=True)
     for sample in stixel_lists:
         df = pd.DataFrame(vars(stixel) for stixel in sample["prediction"])
