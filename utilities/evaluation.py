@@ -57,7 +57,7 @@ def create_result_file(model, weights_file: str, output_path="predictions"):
         df = pd.DataFrame(vars(stixel) for stixel in sample["prediction"])
         df.insert(0, "img_name", sample["sample"] + ".png")
         df.columns = ["img_path", "x", "yT", "yB", "class", "depth"]
-        df.to_csv(os.path.join(output_path_with_checkpoint, sample["sample"]), index=False)
+        df.to_csv(os.path.join(output_path_with_checkpoint, sample["sample"] + ".csv"), index=False)
     print(f"{checkpoint} exported to {output_path}!")
 
 
