@@ -160,8 +160,8 @@ data/testing
 data/validation_data.csv
 data/training_data.csv
 data/testing_data.csv
-saved_models/
-wandb/
+saved_models/*
+wandb
 config.yaml
 Prediction.csv
 Target.csv
@@ -169,4 +169,5 @@ image_export
 data_seg
 data
 dataset
+predictions
 

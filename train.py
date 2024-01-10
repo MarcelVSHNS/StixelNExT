@@ -10,12 +10,11 @@ from models.ConvNeXt import ConvNeXt
 from engine import train_one_epoch, evaluate
 from dataloader.stixel_multicut import MultiCutStixelData, target_transform_gaussian_blur, feature_transform_resize
 from dataloader.stixel_multicut_interpreter import StixelNExTInterpreter
-from test import create_result_file
+from utilities.evaluation import create_result_file
 
 
 # 0.1 Get cpu or gpu device for training.
 device = "cuda" if torch.cuda.is_available() else "cpu"
-print(device)
 # 0.2 Load configfile
 with open('config.yaml') as yamlfile:
     config = yaml.load(yamlfile, Loader=yaml.FullLoader)
@@ -62,7 +61,6 @@ def main():
     # Loss function
     loss_fn = StixelLoss(alpha=config['loss']['alpha'],
                          beta=config['loss']['beta'],
-                         gamma=config['loss']['gamma'],
                          threshold=config['pred_threshold'])
 
     # Optimizer definition
@@ -149,7 +147,7 @@ def main():
 
         if config['export_results']:
             best_checkpoint = min(checkpoints, key=lambda x: x['test-error'])
-            create_result_file(model, best_checkpoint)
+            create_result_file(model, best_checkpoint['checkpoint'])
 
 
 if __name__ == '__main__':
