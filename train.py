@@ -190,6 +190,7 @@ def main():
             destination_path = os.path.join("best_model_weights", best_checkpoint['checkpoint'])
             shutil.copy(source_path, destination_path)
 
+
 class EarlyStopping:
     def __init__(self, tolerance=5, min_delta=0.0):
         self.tolerance = tolerance
@@ -200,9 +201,11 @@ class EarlyStopping:
 
     def check_stop(self, validation_loss):
         if (self.validation_loss_minus_one - validation_loss) > self.min_delta:
-            self.counter +=1
-            if self.counter >= self.tolerance:
-                self.early_stop = True
+            self.counter = 0
+        else:
+            self.counter += 1
+        if self.counter >= self.tolerance:
+            self.early_stop = True
         self.validation_loss_minus_one = validation_loss
 
 
