@@ -14,7 +14,7 @@ def train_one_epoch(dataloader, model, loss_fn, optimizer, device, writer=None) 
         # Compute prediction a prediction
         outputs = model(samples)
         # Compute the error (loss) of that prediction [loss_fn(prediction, target)]
-        loss = loss_fn(outputs, targets)
+        loss, loss_bce, loss_sum = loss_fn(outputs, targets)
         train_loss += loss.item()
         # Backpropagation strategy/ optimization "zero_grad()"
         optimizer.zero_grad()
@@ -24,7 +24,7 @@ def train_one_epoch(dataloader, model, loss_fn, optimizer, device, writer=None) 
         optimizer.step()
         if batch_idx % 10 == 0:
             loss, current = loss.item(), batch_idx * len(samples)
-            print(f"loss: {loss:>7f}  [{current:>5d}/{num_batches:>5d}]")
+            print(f"loss: {loss:>7f}  [{current:>5d}/{num_batches:>5d}], loss_bce: {loss_bce}, loss_sum: {loss_sum}")
     train_loss /= num_batches
     if writer:
         # Log the average loss for the epoch
@@ -42,7 +42,8 @@ def evaluate(dataloader, model, loss_fn, device, writer=None):
             samples = samples.to(device)
             targets = targets.to(device)
             outputs = model(samples)
-            eval_loss += loss_fn(outputs, targets.squeeze(0))
+            loss, loss_bce, loss_sum = loss_fn(outputs, targets.squeeze(0))
+            eval_loss += loss
     eval_loss /= num_batches
     print(f"Test Error: \n Avg loss: {eval_loss:>8f} \n")
     if writer:

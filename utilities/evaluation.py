@@ -20,7 +20,7 @@ else:
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
-def create_result_file(model, weights_file: str, output_path="predictions"):
+def create_result_file(model, weights_file: str, output_path="best_model_weights"):
     dataset_dir = os.path.join(config['data_path'], config['dataset'])
     testing_data = MultiCutStixelData(data_dir=dataset_dir,
                                       phase='testing',

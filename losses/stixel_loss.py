@@ -1,4 +1,5 @@
 from torch import nn
+import torch
 
 
 class StixelLoss(nn.Module):
@@ -21,34 +22,7 @@ class StixelLoss(nn.Module):
             loss_bce = self.bce_loss(inputs, targets.squeeze(0))
             loss_bce = self.alpha * loss_bce
         if self.beta:
-            loss_maximum_cuts = self.limit_num_cuts(inputs)
+            loss_maximum_cuts = torch.mean(inputs[:,1,:,:])
             loss_maximum_cuts = self.beta * loss_maximum_cuts
-        if self.gamma:
-            loss_dense_pred = self.avoid_dense_predictions(inputs)
-            loss_dense_pred = self.gamma * loss_dense_pred
 
-        return loss_bce + loss_maximum_cuts + loss_dense_pred
-
-    def limit_num_cuts(self, inputs):
-        num_cuts_loss = 0.0
-        for sample in inputs:
-            mask = sample[0] > self.threshold
-            num_cuts_loss += mask.sum()
-        return num_cuts_loss
-
-    def avoid_dense_predictions(self, inputs):
-        dense_loss = 0.0
-        for sample in inputs:
-            mask = sample[1] > self.threshold
-            for col in range(mask.shape[1]):
-                column = mask[:, col]
-                i_before = False
-                for i in range(len(column) - 1):
-                    if column[i]:
-                        if not i_before:
-                            pass
-                        else:
-                            distance = i - i_before
-                            dense_loss += 1 / (distance ** 3)
-                        i_before = i
-        return dense_loss
+        return loss_bce + loss_maximum_cuts, loss_bce, loss_maximum_cuts

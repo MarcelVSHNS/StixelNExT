@@ -3,6 +3,7 @@ import yaml
 with open('config.yaml') as yamlfile:
     config = yaml.load(yamlfile, Loader=yaml.FullLoader)
 
+import os
 import torch
 import wandb
 import time
@@ -23,7 +24,8 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 def main():
     # Data loading
-    testing_data = MultiCutStixelData(data_dir=config['data_path'],
+    dataset_dir = os.path.join(config['data_path'], config['dataset'])
+    testing_data = MultiCutStixelData(data_dir=dataset_dir,
                                       phase='testing',
                                       transform=feature_transform,
                                       target_transform=None,
@@ -37,10 +39,14 @@ def main():
                      depths=config['nn']['depths'],
                      widths=config['nn']['widths'],
                      drop_p=config['nn']['drop_p'],
-                     target_height=int(config['img_height'] / config['grid_step']),
-                     target_width=int(config['img_width'] / config['grid_step'])).to(device)
+                     target_height=int(testing_data.img_size['height'] / config['grid_step']),
+                     target_width=int(testing_data.img_size['width'] / config['grid_step']),
+                     out_channels=2).to(device)
+
     weights_file = config['weights_file']
-    model.load_state_dict(torch.load("saved_models/" + weights_file))
+    checkpoint = os.path.splitext(weights_file)[0]  # checkpoint without ending
+    run = checkpoint.split('_')[1]
+    model.load_state_dict(torch.load(os.path.join("saved_models", run, weights_file)))
     print(f'Weights loaded from: {weights_file}')
 
     # Investigate some selected data

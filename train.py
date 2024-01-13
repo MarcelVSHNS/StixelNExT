@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from torchsummary import summary
 from datetime import datetime
 import os
+import shutil
 from losses.stixel_loss import StixelLoss
 from models.ConvNeXt import ConvNeXt
 from engine import train_one_epoch, evaluate
@@ -25,8 +26,8 @@ else:
     config['grid_step'] = 8
     config['img_height'] = None
     config['img_width'] = None
-with open('config.yaml', 'w') as file:
-    yaml.dump(config, file, default_flow_style=False)
+#with open('config.yaml', 'w') as file:
+#    yaml.dump(config, file, default_flow_style=False)
 
 # 0.2 Get cpu or gpu device for training.
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -60,7 +61,7 @@ def main():
                                           target_transform=None,
                                           return_original_image=True)
         test_dataloader = DataLoader(testing_data, batch_size=config['batch_size'],
-                                     num_workers=config['resources']['test_worker'], pin_memory=True, shuffle=True,
+                                     num_workers=config['resources']['test_worker'], pin_memory=True, shuffle=False,
                                      drop_last=True)
 
     # Define Model
@@ -75,7 +76,9 @@ def main():
     # Load Weights
     if config['load_weights']:
         weights_file = config['weights_file']
-        model.load_state_dict(torch.load("saved_models/" + weights_file))
+        checkpoint = os.path.splitext(weights_file)[0]  # checkpoint without ending
+        run = checkpoint.split('_')[1]
+        model.load_state_dict(torch.load(os.path.join("saved_models", run, weights_file)))
         print(f'Weights loaded from: {weights_file}')
     # Loss function
     loss_fn = StixelLoss(alpha=config['loss']['alpha'],
@@ -109,6 +112,7 @@ def main():
     if config['explore_data']:
         test_features, test_labels, image = next(iter(test_dataloader))
         pick = -1
+        target = test_labels.numpy()
         result_interpreter = StixelNExTInterpreter(detection_threshold=config['pred_threshold'],
                                                    hysteresis_threshold=config['pred_threshold'] - 0.05)
 
@@ -123,6 +127,9 @@ def main():
             sample = test_features.to(device)
             output = model(sample)
             output = output.cpu().detach()
+            test2 = output[:,1,:,:]
+            print(test2.sum())
+            print(test2.shape)
             result_interpreter.extract_stixel_from_prediction(output[pick])
             result_interpreter.show_stixel(image[pick])
             result_interpreter.show_bottoms(image[pick])
@@ -150,10 +157,11 @@ def main():
     # Training
     if config['training']:
         checkpoints = []
+        early_stopping = EarlyStopping(tolerance=4, min_delta=0.001)
         for epoch in range(config['num_epochs']):
             print(f"\n   Epoch {epoch + 1}\n----------------------------------------------------------------")
-            train_one_epoch(train_dataloader, model, loss_fn, optimizer,
-                            device=device, writer=wandb_logger)
+            train_error = train_one_epoch(train_dataloader, model, loss_fn, optimizer,
+                                          device=device, writer=wandb_logger)
             test_error = evaluate(val_dataloader, model, loss_fn,
                                   device=device, writer=wandb_logger)
             # Save model
@@ -166,12 +174,36 @@ def main():
                 print("Saved PyTorch Model State to " + os.path.join(saved_models_path, weights_name))
             step_time = datetime.now() - overall_start_time
             print("Time elapsed: {}".format(step_time))
+
+            # early stopping
+            early_stopping.check_stop(test_error)
+            if early_stopping.early_stop:
+                print("Early stopping at epoch:", epoch)
+                break
+
         overall_time = datetime.now() - overall_start_time
         print(f"Finished training in {str(overall_time).split('.')[0]}")
 
-        if config['export_results']:
+        if config['logging']['activate']:
             best_checkpoint = min(checkpoints, key=lambda x: x['test-error'])
-            create_result_file(model, best_checkpoint['checkpoint'])
+            source_path = os.path.join(saved_models_path, best_checkpoint['checkpoint'])
+            destination_path = os.path.join("best_model_weights", best_checkpoint['checkpoint'])
+            shutil.copy(source_path, destination_path)
+
+class EarlyStopping:
+    def __init__(self, tolerance=5, min_delta=0.0):
+        self.tolerance = tolerance
+        self.min_delta = min_delta
+        self.validation_loss_minus_one = 10000
+        self.counter = 0
+        self.early_stop = False
+
+    def check_stop(self, validation_loss):
+        if (self.validation_loss_minus_one - validation_loss) > self.min_delta:
+            self.counter +=1
+            if self.counter >= self.tolerance:
+                self.early_stop = True
+        self.validation_loss_minus_one = validation_loss
 
 
 if __name__ == '__main__':
