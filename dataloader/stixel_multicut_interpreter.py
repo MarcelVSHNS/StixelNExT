@@ -116,9 +116,12 @@ def draw_bottom_lines(image, bottom_pts: np.array, threshold, grid_step=8, alpha
 
 
 class StixelNExTInterpreter:
-    def __init__(self, detection_threshold=0.4, hysteresis_threshold=0.35):
+    def __init__(self, detection_threshold=0.4, hysteresis_threshold=False):
         self.s1 = detection_threshold
-        self.s2 = hysteresis_threshold
+        if hysteresis_threshold:
+            self.s2 = hysteresis_threshold
+        else:
+            self.s2 = detection_threshold - 0.05
         self.stixel_list = None
         self.bottom_pts = None
 
