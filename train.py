@@ -110,26 +110,24 @@ def main():
 
     # Explore data
     if config['explore_data']:
+        import cv2
+        import numpy as np
         test_features, test_labels, image = next(iter(test_dataloader))
         pick = -1
-        target = test_labels.numpy()
         result_interpreter = StixelNExTInterpreter(detection_threshold=config['pred_threshold'],
                                                    hysteresis_threshold=config['pred_threshold'] - 0.05)
 
         # print ground truth
         result_interpreter.extract_stixel_from_prediction(test_labels[pick], detection_threshold=1.0,
                                                           hysteresis_threshold=0.9)
-        result_interpreter.show_stixel(image[pick])
-        result_interpreter.show_bottoms(image[pick])
+        #result_interpreter.show_stixel(image[pick])
+        #result_interpreter.show_bottoms(image[pick])
 
         # print inference
         if config['load_weights']:
             sample = test_features.to(device)
             output = model(sample)
             output = output.cpu().detach()
-            test2 = output[:,1,:,:]
-            print(test2.sum())
-            print(test2.shape)
             result_interpreter.extract_stixel_from_prediction(output[pick])
             result_interpreter.show_stixel(image[pick])
             result_interpreter.show_bottoms(image[pick])
