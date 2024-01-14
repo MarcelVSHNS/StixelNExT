@@ -50,3 +50,21 @@ def evaluate(dataloader, model, loss_fn, device, writer=None):
         # Log the loss by adding scalars
         writer.log({"Eval loss": eval_loss})
     return eval_loss
+
+
+class EarlyStopping:
+    def __init__(self, tolerance=5, min_delta=0.0):
+        self.tolerance = tolerance
+        self.min_delta = min_delta
+        self.validation_loss_minus_one = 10000
+        self.counter = 0
+        self.early_stop = False
+
+    def check_stop(self, validation_loss):
+        if (self.validation_loss_minus_one - validation_loss) > self.min_delta:
+            self.counter = 0
+        else:
+            self.counter += 1
+        if self.counter >= self.tolerance:
+            self.early_stop = True
+        self.validation_loss_minus_one = validation_loss

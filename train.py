@@ -12,9 +12,8 @@ import os
 import shutil
 from losses.stixel_loss import StixelLoss
 from models.ConvNeXt import ConvNeXt
-from engine import train_one_epoch, evaluate
-from dataloader.stixel_multicut_interpreter import StixelNExTInterpreter
-from utilities.evaluation import create_result_file
+from engine import train_one_epoch, evaluate, EarlyStopping
+from dataloader.stixel_multicut_interpreter import StixelNExTInterpreter, show_pred_heatmap
 from dataloader.stixel_multicut import MultiCutStixelData, target_transform_gaussian_blur as target_transform
 if config['dataset'] == "kitti":
     from dataloader.stixel_multicut import feature_transform_resize as feature_transform
@@ -61,7 +60,7 @@ def main():
                                           target_transform=None,
                                           return_original_image=True)
         test_dataloader = DataLoader(testing_data, batch_size=config['batch_size'],
-                                     num_workers=config['resources']['test_worker'], pin_memory=True, shuffle=False,
+                                     num_workers=config['resources']['test_worker'], pin_memory=True, shuffle=True,
                                      drop_last=True)
 
     # Define Model
@@ -78,7 +77,9 @@ def main():
         weights_file = config['weights_file']
         checkpoint = os.path.splitext(weights_file)[0]  # checkpoint without ending
         run = checkpoint.split('_')[1]
-        model.load_state_dict(torch.load(os.path.join("saved_models", run, weights_file)))
+        model.load_state_dict(
+            torch.load(f=os.path.join("saved_models", run, weights_file),
+                       map_location=torch.device(device)))
         print(f'Weights loaded from: {weights_file}')
     # Loss function
     loss_fn = StixelLoss(alpha=config['loss']['alpha'],
@@ -110,8 +111,6 @@ def main():
 
     # Explore data
     if config['explore_data']:
-        import cv2
-        import numpy as np
         test_features, test_labels, image = next(iter(test_dataloader))
         pick = -1
         result_interpreter = StixelNExTInterpreter(detection_threshold=config['pred_threshold'],
@@ -120,7 +119,7 @@ def main():
         # print ground truth
         result_interpreter.extract_stixel_from_prediction(test_labels[pick], detection_threshold=1.0,
                                                           hysteresis_threshold=0.9)
-        #result_interpreter.show_stixel(image[pick])
+        result_interpreter.show_stixel(image[pick])
         #result_interpreter.show_bottoms(image[pick])
 
         # print inference
@@ -128,9 +127,12 @@ def main():
             sample = test_features.to(device)
             output = model(sample)
             output = output.cpu().detach()
-            result_interpreter.extract_stixel_from_prediction(output[pick])
-            result_interpreter.show_stixel(image[pick])
-            result_interpreter.show_bottoms(image[pick])
+
+            show_pred_heatmap(image[pick], output[pick])
+            show_pred_heatmap(image[pick], output[pick], map=1)
+            #result_interpreter.extract_stixel_from_prediction(output[pick])
+            #result_interpreter.show_stixel(image[pick])
+            #result_interpreter.show_bottoms(image[pick])
 
     # Inspect model
     if config['inspect_model']:
@@ -155,7 +157,8 @@ def main():
     # Training
     if config['training']:
         checkpoints = []
-        early_stopping = EarlyStopping(tolerance=4, min_delta=0.001)
+        early_stopping = EarlyStopping(tolerance=config['early_stopping']['tolerance'],
+                                       min_delta=config['early_stopping']['min_delta'])
         for epoch in range(config['num_epochs']):
             print(f"\n   Epoch {epoch + 1}\n----------------------------------------------------------------")
             train_error = train_one_epoch(train_dataloader, model, loss_fn, optimizer,
@@ -187,24 +190,6 @@ def main():
             source_path = os.path.join(saved_models_path, best_checkpoint['checkpoint'])
             destination_path = os.path.join("best_model_weights", best_checkpoint['checkpoint'])
             shutil.copy(source_path, destination_path)
-
-
-class EarlyStopping:
-    def __init__(self, tolerance=5, min_delta=0.0):
-        self.tolerance = tolerance
-        self.min_delta = min_delta
-        self.validation_loss_minus_one = 10000
-        self.counter = 0
-        self.early_stop = False
-
-    def check_stop(self, validation_loss):
-        if (self.validation_loss_minus_one - validation_loss) > self.min_delta:
-            self.counter = 0
-        else:
-            self.counter += 1
-        if self.counter >= self.tolerance:
-            self.early_stop = True
-        self.validation_loss_minus_one = validation_loss
 
 
 if __name__ == '__main__':

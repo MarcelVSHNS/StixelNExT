@@ -162,6 +162,5 @@ best_model_weights/*
 wandb
 data
 dataset
-
-config.yaml
+results
 

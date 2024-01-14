@@ -9,6 +9,7 @@ import yaml
 with open('config.yaml') as yamlfile:
     config = yaml.load(yamlfile, Loader=yaml.FullLoader)
 
+
 class Stixel:
     def __init__(self, x, y_t, y_b, depth=42.0):
         self.column = x
@@ -117,26 +118,25 @@ def draw_bottom_lines(image, bottom_pts: np.array, threshold, grid_step=8, alpha
                 image = cv2.circle(image, center_coordinates, radius, color, thickness)
     return Image.fromarray(image)
 
-def draw_heatmap(image, prediction, stixel_width=config['grid_step']):
-    # Wir werden die Matrixwerte benutzen, um eine Heatmap zu erstellen
-    # Zuerst skalieren wir die Matrix auf die Dimension des Bildes
+
+def draw_heatmap(image, prediction, stixel_width=config['grid_step'], map=0):
+    image = np.array(image.numpy())
+    prediction = prediction[map].numpy()
     heatmap = cv2.resize(prediction, (image.shape[1] // stixel_width, image.shape[0] // stixel_width))
-
-    # Jetzt erweitern wir die Heatmap auf die vollständige Größe des Bildes, um es zu überlagern
-    heatmap_large = cv2.resize(heatmap, (image.shape[1], image.shape[0]))
-
-    # Anwendung eines Farbschemas auf die Heatmap
-    heatmap_large = np.uint8(255 * heatmap_large)  # Umwandlung zu einem Bildformat
-    color_heatmap = cv2.applyColorMap(heatmap_large, cv2.COLORMAP_JET)
-
-    # Überlagern der Heatmap auf das Originalbild
+    heatmap_large = cv2.resize(heatmap, (int(image.shape[1]-stixel_width/2), int(image.shape[0]-stixel_width/2)))
+    heatmap_centered = np.zeros((image.shape[0], image.shape[1]))
+    offset = int(stixel_width / 2)
+    heatmap_centered[offset:offset + heatmap_large.shape[0], offset:offset + heatmap_large.shape[1]] = heatmap_large
+    heatmap = np.uint8(255 * heatmap_centered)
+    color_heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
     overlay_image = cv2.addWeighted(image, 0.7, color_heatmap, 0.3, 0)
+    overlay_image_pil = Image.fromarray(cv2.cvtColor(overlay_image, cv2.COLOR_BGR2RGB))
+    return overlay_image_pil
 
-    # Visualisierung des Ergebnisses
-    plt.figure(figsize=(10, 10))
-    plt.imshow(cv2.cvtColor(overlay_image, cv2.COLOR_BGR2RGB))  # Umwandlung in RGB für die Anzeige
-    plt.axis('off')  # Keine Achsen für die Anzeige
-    plt.show()
+
+def show_pred_heatmap(pil_image, output, map=0):
+    image_with_heatmap = draw_heatmap(pil_image, output, map=map)
+    image_with_heatmap.show()
 
 
 class StixelNExTInterpreter:

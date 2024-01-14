@@ -1,0 +1,41 @@
+batch_size: 2
+data_path: C:\Users\marce\Documents\datasets
+# /home/marcel/workspace/datasets
+dataset: ameise
+explore_data: true
+grid_step: 8
+img_height: null
+img_width: null
+inspect_model: true
+learning_rate: 0.001
+load_weights: true
+logging:
+  activate: false
+  project: Stixel-Multicut
+loss:
+  alpha: 1.0
+  beta: 1.0
+  gamma: false
+nn:
+  depths:
+  - 6
+  - 3
+  drop_p: 0.0
+  stem_features: 64
+  widths:
+  - 96
+  - 192
+  - 384
+  - 768
+num_epochs: 40
+pred_threshold: 0.4
+resources:
+  test_worker: 2
+  train_worker: 4
+  val_worker: 2
+test_loss: true
+training: false
+weights_file: StixelNExT_crisp-terrain-152_epoch-7_test-error-0.22078129649162292.pth
+early_stopping:
+  tolerance: 5
+  min_delta: 0.001
