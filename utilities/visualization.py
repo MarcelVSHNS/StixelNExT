@@ -8,7 +8,10 @@ from typing import List
 import cv2
 from dataloader.stixel_multicut_interpreter import Stixel
 import matplotlib.patches as patches
-
+import yaml
+# 0.1 Load configfile
+with open('config.yaml') as yamlfile:
+    config = yaml.load(yamlfile, Loader=yaml.FullLoader)
 
 def show_meta_data(x_feature, y_target, idx=0):
     print(f"Feature batch shape: {x_feature.size()}")
@@ -166,7 +169,7 @@ WAYMO_SEG_COLOR_MAP = {
 }
 
 
-def draw_stixels_on_image(image_tensor, stixels: List[Stixel], stixel_width=8):
+def draw_stixels_on_image(image_tensor, stixels: List[Stixel], stixel_width=config['grid_step']):
     tensor_np_image = image_tensor.permute(1, 2, 0).numpy()
     np_image_rgb = np.array((tensor_np_image * 255).astype(np.uint8))
     opencv_image = cv2.cvtColor(np_image_rgb, cv2.COLOR_RGB2BGR)
@@ -180,3 +183,4 @@ def draw_stixels_on_image(image_tensor, stixels: List[Stixel], stixel_width=8):
     rgb_image = cv2.cvtColor(opencv_image, cv2.COLOR_BGR2RGB)
     normal_image = 255 - rgb_image
     return Image.fromarray(normal_image)
+

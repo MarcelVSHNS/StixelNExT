@@ -4,7 +4,10 @@ import torch
 import cv2
 from PIL import Image
 import matplotlib.pyplot as plt
-
+import yaml
+# 0.1 Load configfile
+with open('config.yaml') as yamlfile:
+    config = yaml.load(yamlfile, Loader=yaml.FullLoader)
 
 class Stixel:
     def __init__(self, x, y_t, y_b, depth=42.0):
@@ -18,7 +21,7 @@ class Stixel:
     def __repr__(self):
         return f"{self.column},{self.top},{self.bottom},{self.depth}"
 
-    def scale_by_grid(self, grid_step=8):
+    def scale_by_grid(self, grid_step=config['grid_step']):
         self.column = self.column * grid_step
         self.top = self.top * grid_step
         self.bottom = self.bottom * grid_step
@@ -113,6 +116,27 @@ def draw_bottom_lines(image, bottom_pts: np.array, threshold, grid_step=8, alpha
                 thickness = -1 # line thickness, use -1 for filled circle
                 image = cv2.circle(image, center_coordinates, radius, color, thickness)
     return Image.fromarray(image)
+
+def draw_heatmap(image, prediction, stixel_width=config['grid_step']):
+    # Wir werden die Matrixwerte benutzen, um eine Heatmap zu erstellen
+    # Zuerst skalieren wir die Matrix auf die Dimension des Bildes
+    heatmap = cv2.resize(prediction, (image.shape[1] // stixel_width, image.shape[0] // stixel_width))
+
+    # Jetzt erweitern wir die Heatmap auf die vollständige Größe des Bildes, um es zu überlagern
+    heatmap_large = cv2.resize(heatmap, (image.shape[1], image.shape[0]))
+
+    # Anwendung eines Farbschemas auf die Heatmap
+    heatmap_large = np.uint8(255 * heatmap_large)  # Umwandlung zu einem Bildformat
+    color_heatmap = cv2.applyColorMap(heatmap_large, cv2.COLORMAP_JET)
+
+    # Überlagern der Heatmap auf das Originalbild
+    overlay_image = cv2.addWeighted(image, 0.7, color_heatmap, 0.3, 0)
+
+    # Visualisierung des Ergebnisses
+    plt.figure(figsize=(10, 10))
+    plt.imshow(cv2.cvtColor(overlay_image, cv2.COLOR_BGR2RGB))  # Umwandlung in RGB für die Anzeige
+    plt.axis('off')  # Keine Achsen für die Anzeige
+    plt.show()
 
 
 class StixelNExTInterpreter:
