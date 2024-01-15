@@ -7,3 +7,5 @@ wandb
 torchsummary
 pyyaml
 opencv-python
+Pillow
+optuna
