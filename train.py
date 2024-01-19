@@ -13,7 +13,7 @@ import shutil
 from losses.stixel_loss_endtoend import StixelLoss
 from models.ConvNeXt import ConvNeXt
 from engine import train_one_epoch, evaluate, EarlyStopping
-from dataloader.stixel_multicut_interpreter import StixelNExTInterpreter, show_pred_heatmap
+from dataloader.stixel_multicut_interpreter_endtoend import StixelNExTInterpreter, show_pred_heatmap
 from dataloader.stixel_multicut_endtoend import MultiCutStixelData, target_transform_gaussian_blur as target_transform
 if config['dataset'] == "kitti":
     from dataloader.stixel_multicut import feature_transform_resize as feature_transform
@@ -114,24 +114,18 @@ def main():
         test_features, test_labels, image = testing_data[420]
         #show_pred_heatmap(image, test_labels)
         #show_pred_heatmap(image, test_labels, map=1)
-        TEST = test_labels.numpy()
-        result_interpreter = StixelNExTInterpreter(detection_threshold=config['pred_threshold'],
-                                                   hysteresis_threshold=0.01)
+        result_interpreter = StixelNExTInterpreter()
         # print ground truth
-        result_interpreter.extract_stixel_from_prediction(test_labels, detection_threshold=0.8,
-                                                          hysteresis_threshold=0.01)
-        #result_interpreter.show_stixel(image)
-        #result_interpreter.show_bottoms(image[pick])
+        targ_stixels = result_interpreter.extract_stixel_from_prediction(test_labels)
+        result_interpreter.show_stixel(image, targ_stixels, color=[0, 255, 0])
         # print inference
         if config['load_weights']:
             sample = test_features.unsqueeze(0).to(device)
             output = model(sample)
             output = output.cpu().detach()
             output = output.squeeze()
-            show_pred_heatmap(image, output)
-            show_pred_heatmap(image, output, map=1)
-            result_interpreter.extract_stixel_from_prediction(output)
-            result_interpreter.show_stixel(image)
+            pred_stixels = result_interpreter.extract_stixel_from_prediction(output, detection_threshold=0.5)
+            result_interpreter.show_stixel(image, pred_stixels)
             #result_interpreter.show_bottoms(image[pick])
 
     # Inspect model
