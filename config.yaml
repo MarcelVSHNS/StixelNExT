@@ -38,5 +38,5 @@ test_loss: true
 training: false
 weights_file: StixelNExT_crisp-terrain-152_epoch-7_test-error-0.22078129649162292.pth
 early_stopping:
-  tolerance: 5
+  tolerance: 8
   min_delta: 0.001
