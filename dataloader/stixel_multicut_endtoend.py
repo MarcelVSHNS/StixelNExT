@@ -8,7 +8,7 @@ import numpy as np
 from typing import List
 import cv2
 from utilities.visualization import draw_stixels_on_image
-from dataloader.stixel_multicut_interpreter import Stixel
+from dataloader.stixel_multicut_interpreter_endtoend import Stixel
 import torch.nn.functional as F
 import yaml
 import time

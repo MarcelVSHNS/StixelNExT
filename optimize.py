@@ -51,18 +51,22 @@ def objective(trial):
                                 num_workers=config['resources']['val_worker'], pin_memory=True, shuffle=False, drop_last=True)
 
     # Define Model
-    model = ConvNeXt(stem_features=stem_features,
-                     depths=depths,
-                     widths=widths,
-                     drop_p=drop_p,
-                     out_channels=2).to(device)
+    model = ConvNeXt(stem_features=config['nn']['stem_features'],
+                     depths=config['nn']['depths'],
+                     widths=config['nn']['widths'],
+                     drop_p=config['nn']['drop_p'],
+                     target_height=config['num_obj_per_col'],
+                     target_width=int(config['img_width'] // config['grid_step']),
+                     out_channels=3).to(device)
     # Inspect model
     summary(model, (3, 1200, 1920))
     print("----------------------------------------------------------------")
 
     # Loss function
     loss_fn = StixelLoss(alpha=1.0,
-                         beta=False)
+                         beta=1.0,
+                         gamma=1.0,
+                         delta=False)
 
     # Optimizer definition
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)

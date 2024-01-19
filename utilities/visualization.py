@@ -6,7 +6,7 @@ from PIL import Image
 import random
 from typing import List
 import cv2
-from dataloader.stixel_multicut_interpreter import Stixel
+from dataloader.stixel_multicut_interpreter_endtoend import Stixel
 import matplotlib.patches as patches
 import yaml
 # 0.1 Load configfile

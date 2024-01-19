@@ -16,15 +16,15 @@ from engine import train_one_epoch, evaluate, EarlyStopping
 from dataloader.stixel_multicut_interpreter_endtoend import StixelNExTInterpreter, show_pred_heatmap
 from dataloader.stixel_multicut_endtoend import MultiCutStixelData, target_transform_gaussian_blur as target_transform
 if config['dataset'] == "kitti":
-    from dataloader.stixel_multicut import feature_transform_resize as feature_transform
+    from dataloader.stixel_multicut_endtoend import feature_transform_resize as feature_transform
     config['grid_step'] = 4
     config['img_height'] = 376
     config['img_width'] = 1248
 else:
     feature_transform = None
     config['grid_step'] = 8
-    config['img_height'] = None
-    config['img_width'] = None
+    config['img_height'] = 1200
+    config['img_width'] = 1920
 #with open('config.yaml', 'w') as file:
 #    yaml.dump(config, file, default_flow_style=False)
 
@@ -69,8 +69,8 @@ def main():
                      depths=config['nn']['depths'],
                      widths=config['nn']['widths'],
                      drop_p=config['nn']['drop_p'],
-                     target_height=42,
-                     target_width=240,
+                     target_height=config['num_obj_per_col'],
+                     target_width=int(config['img_width'] / config['grid_step']),
                      out_channels=3).to(device)
 
     # Load Weights
