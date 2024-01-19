@@ -1,20 +1,21 @@
 batch_size: 2
-data_path: C:\Users\marce\Documents\datasets
+data_path: /home/marcel/workspace/datasets
 # /home/marcel/workspace/datasets
+# C:\Users\marce\Documents\datasets
 dataset: ameise
 explore_data: true
 grid_step: 8
 img_height: null
 img_width: null
 inspect_model: true
-learning_rate: 0.001
+learning_rate: 0.0001
 load_weights: true
 logging:
   activate: false
   project: Stixel-Multicut
 loss:
   alpha: 1.0
-  beta: 1.0
+  beta: 0.6
   gamma: false
 nn:
   depths:
@@ -28,7 +29,7 @@ nn:
   - 384
   - 768
 num_epochs: 40
-pred_threshold: 0.4
+pred_threshold: 0.1
 resources:
   test_worker: 2
   train_worker: 4

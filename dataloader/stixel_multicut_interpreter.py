@@ -11,74 +11,86 @@ with open('config.yaml') as yamlfile:
 
 
 class Stixel:
-    def __init__(self, x, y_t, y_b, depth=42.0):
+    def __init__(self, x, y_t, y_b, depth=42.0, grid_step=config['grid_step']):
         self.column = x
         self.top = y_t
         self.bottom = y_b
         self.seg_class = -1
         self.depth = depth
+        self.grid_step = grid_step
         self.scale_by_grid()
 
     def __repr__(self):
         return f"{self.column},{self.top},{self.bottom},{self.depth}"
 
-    def scale_by_grid(self, grid_step=config['grid_step']):
-        self.column = self.column * grid_step
-        self.top = self.top * grid_step
-        self.bottom = self.bottom * grid_step
+    def scale_by_grid(self):
+        self.column = int(self.column * self.grid_step)
+        self.top = int(self.top * self.grid_step)
+        self.bottom = int(self.bottom * self.grid_step)
         if self.bottom > 1200 or self.top > 1200 or self.column > 1920:
             print("nooo")
 
+    def cut_is_in_stixel(self, cut_row, tolerance=120):
+        cut_row = cut_row * self.grid_step
+        if self.top + tolerance < cut_row < self.bottom - tolerance:
+            return True
+        else:
+            return False
 
-def extract_stixels(prediction, s1, s2):
-    """
+    def divide_stixel_into_two(self, cut_row):
+        col = self.column / self.grid_step
+        y_t = self.top / self.grid_step
+        y_b = self.bottom / self.grid_step
+        upper_stixel = Stixel(col, y_t, cut_row)
+        lower_stixel = Stixel(col, cut_row + 1, y_b)
+        return upper_stixel, lower_stixel
 
-    Extract Stixels
 
-    This method takes a prediction matrix, `prediction`, along with two threshold values, `s1` and `s2`. It calculates and returns a list of stixels.
-
-    Parameters:
-    - `prediction` (list of numpy arrays): A list containing two numpy arrays representing the prediction matrix. The shape of each numpy array should be (num_rows, num_cols).
-    - `s1` (int): The threshold value for determining if a stixel starts.
-    - `s2` (int): The threshold value for determining if a stixel ends.
-
-    Returns:
-    - `stixels` (list): A list of Stixel objects. Each Stixel object represents a stixel and contains the following attributes:
-        - `col` (int): The column index where the stixel starts or ends.
-        - `start` (int): The row index where the stixel starts.
-        - `end` (int): The row index where the stixel ends.
-
-    Note:
-    - A stixel is defined as a continuous region in the prediction matrix where the value in the `stixel_repr` array is greater than or equal to `s1` and the value in the `bottom_repr` array
-    * is less than `s2`.
-    - The `Stixel` object is not provided and should be defined separately before using this method.
-
-    Example Usage:
-    ```
-    prediction = [np.array([[1, 2, 3], [4, 5, 6]]), np.array([[1, 0, 1], [0, 1, 0]])]
-    s1 = 3
-    s2 = 1
-    stixels = extract_stixels(prediction, s1, s2)
-    ```
-    """
+def extract_stixels(prediction, s1, s2=0.1):
     num_rows, num_cols = prediction[0].shape
-    stixel_repr = prediction[0]
-    bottom_repr = prediction[1]
+    occupancy = prediction[0]
+    cut_mtx = prediction[1]
+
     stixels = []
     for col in range(num_cols):
+        col_stixels = []
+        col_cuts = []
         in_stixel = False
         stixel_start = 0
         for row in range(num_rows):
             if in_stixel:
-                if stixel_repr[row][col] < s2 or bottom_repr[row][col]  >= s1:
-                    stixels.append(Stixel(col, stixel_start, row))
+                if occupancy[row][col] < s1 - s2:
+                    col_stixels.append(Stixel(col, stixel_start, row))
                     in_stixel = False
             else:
-                if stixel_repr[row][col] >= s1:
+                if occupancy[row][col] >= s1:
                     in_stixel = True
                     stixel_start = row
         if in_stixel:
-            stixels.append(Stixel(col, stixel_start, num_rows - 1))
+            col_stixels.append(Stixel(col, stixel_start, num_rows - 1))
+        # find cuts
+        in_cut = False
+        offset = 0.3
+        for row in range(num_rows):
+            if in_cut:
+                if cut_mtx[row][col] < s1 - offset - s2:
+                    cut_end = row
+                    col_cuts.append((cut_start + cut_end) / 2)
+                    in_cut = False
+            else:
+                if cut_mtx[row][col] >= s1 - offset:
+                    in_cut = True
+                    cut_start = row
+        for cut in col_cuts:
+            for idx in range(len(col_stixels)):
+                if col_stixels[idx].cut_is_in_stixel(cut):
+                    upper, lower = col_stixels[idx].divide_stixel_into_two(cut)
+                    col_stixels.pop(idx)
+                    col_stixels.append(upper)
+                    col_stixels.append(lower)
+                    break
+        for stixel in col_stixels:
+            stixels.append(stixel)
     return stixels
 
 
@@ -88,15 +100,16 @@ def get_color_from_depth(depth, min_depth, max_depth):
     return tuple(int(c * 255) for c in color)
 
 
-def draw_stixels_on_image(image, stixels: List[Stixel], stixel_width=8, alpha=0.1):
-    image = np.array(image.numpy())
+def draw_stixels_on_image(image, stixels: List[Stixel], color=[255, 0, 0], stixel_width=8, alpha=0.3):
+    image = np.array(image)
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     stixels.sort(key=lambda x: x.depth, reverse=True)
     min_depth, max_depth = 0, 50
     for stixel in stixels:
         top_left_x, top_left_y = stixel.column, stixel.top
         bottom_left_x, bottom_left_y = stixel.column, stixel.bottom
-        color = get_color_from_depth(stixel.depth, min_depth, max_depth)
+        color = color
+        #get_color_from_depth(stixel.depth, min_depth, max_depth)
         bottom_right_x = bottom_left_x + stixel_width
         overlay = image.copy()
         cv2.rectangle(overlay, (top_left_x, top_left_y), (bottom_right_x, bottom_left_y), color, -1)
@@ -120,7 +133,7 @@ def draw_bottom_lines(image, bottom_pts: np.array, threshold, grid_step=8, alpha
 
 
 def draw_heatmap(image, prediction, stixel_width=config['grid_step'], map=0):
-    image = np.array(image.numpy())
+    image = np.array(image)
     prediction = prediction[map].numpy()
     heatmap = cv2.resize(prediction, (image.shape[1] // stixel_width, image.shape[0] // stixel_width))
     heatmap_large = cv2.resize(heatmap, (int(image.shape[1]-stixel_width/2), int(image.shape[0]-stixel_width/2)))
@@ -157,8 +170,8 @@ class StixelNExTInterpreter:
         self.bottom_pts = prediction_mtx_numpy[1]
         return self.stixel_list
 
-    def show_stixel(self, pil_image):
-        image_with_stixel = draw_stixels_on_image(pil_image, self.stixel_list)
+    def show_stixel(self, pil_image, color=[255, 0, 0]):
+        image_with_stixel = draw_stixels_on_image(pil_image, self.stixel_list, color=color)
         image_with_stixel.show()
 
     def show_bottoms(self, image):

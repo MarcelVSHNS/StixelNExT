@@ -1,0 +1,17 @@
+Test Error:
+ Avg loss: 0.453458
+
+Study statistics:
+  Number of finished trials:  50
+  Number of pruned trials:  21
+  Number of complete trials:  29
+Best trial:
+  Value:  37.209564208984375
+  Params:
+    learning_rate: 0.0808898437917994
+    depth0: 6
+    depth1: 6
+    stem_features: 224
+    width_factor: 3.0
+    drop_p: 0.2967522198561567
+    pred_threshold: 0.6567245047417907

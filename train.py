@@ -60,7 +60,7 @@ def main():
                                           target_transform=None,
                                           return_original_image=True)
         test_dataloader = DataLoader(testing_data, batch_size=config['batch_size'],
-                                     num_workers=config['resources']['test_worker'], pin_memory=True, shuffle=True,
+                                     num_workers=config['resources']['test_worker'], pin_memory=True, shuffle=False,
                                      drop_last=True)
 
     # Define Model
@@ -111,27 +111,27 @@ def main():
 
     # Explore data
     if config['explore_data']:
-        test_features, test_labels, image = next(iter(test_dataloader))
-        pick = -1
+        test_features, test_labels, image = testing_data[420]
+        #show_pred_heatmap(image, test_labels)
+        #show_pred_heatmap(image, test_labels, map=1)
+        TEST = test_labels.numpy()
         result_interpreter = StixelNExTInterpreter(detection_threshold=config['pred_threshold'],
-                                                   hysteresis_threshold=config['pred_threshold'] - 0.05)
-
+                                                   hysteresis_threshold=0.01)
         # print ground truth
-        result_interpreter.extract_stixel_from_prediction(test_labels[pick], detection_threshold=1.0,
-                                                          hysteresis_threshold=0.9)
-        result_interpreter.show_stixel(image[pick])
+        result_interpreter.extract_stixel_from_prediction(test_labels, detection_threshold=0.8,
+                                                          hysteresis_threshold=0.01)
+        #result_interpreter.show_stixel(image)
         #result_interpreter.show_bottoms(image[pick])
-
         # print inference
         if config['load_weights']:
-            sample = test_features.to(device)
+            sample = test_features.unsqueeze(0).to(device)
             output = model(sample)
             output = output.cpu().detach()
-
-            show_pred_heatmap(image[pick], output[pick])
-            show_pred_heatmap(image[pick], output[pick], map=1)
-            #result_interpreter.extract_stixel_from_prediction(output[pick])
-            #result_interpreter.show_stixel(image[pick])
+            output = output.squeeze()
+            show_pred_heatmap(image, output)
+            show_pred_heatmap(image, output, map=1)
+            result_interpreter.extract_stixel_from_prediction(output)
+            result_interpreter.show_stixel(image)
             #result_interpreter.show_bottoms(image[pick])
 
     # Inspect model
@@ -190,6 +190,7 @@ def main():
             source_path = os.path.join(saved_models_path, best_checkpoint['checkpoint'])
             destination_path = os.path.join("best_model_weights", best_checkpoint['checkpoint'])
             shutil.copy(source_path, destination_path)
+    wandb.finish()
 
 
 if __name__ == '__main__':

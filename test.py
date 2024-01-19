@@ -11,7 +11,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 from models.ConvNeXt import ConvNeXt
 from dataloader.stixel_multicut import MultiCutStixelData
-from dataloader.stixel_multicut_interpreter import StixelNExTInterpreter
+from dataloader.stixel_multicut_interpreter import StixelNExTInterpreter, show_pred_heatmap
 from metrics.PrecisionRecall import evaluate_stixels, plot_precision_recall_curve, draw_stixel_on_image_prcurve
 if config['dataset'] == "kitti":
     from dataloader.stixel_multicut import feature_transform_resize as feature_transform
@@ -51,20 +51,27 @@ def main():
 
     # Investigate some selected data
     if config['explore_data']:
-        pick = 0
         iou_pick = 50   # in %
-        test_features, test_labels, image = next(iter(testing_dataloader))
+        test_features, test_labels, image = testing_data[101]
         # inference
-        sample = test_features.to(device)
+
+        sample = test_features.unsqueeze(0).to(device)
         output = model(sample)
         output = output.cpu().detach()
+        output = output.squeeze()
         # interpretation
+        # show_pred_heatmap(image, output)
+        # show_pred_heatmap(image, output, map=1)
         stixel_reader = StixelNExTInterpreter(detection_threshold=config['pred_threshold'],
                                                    hysteresis_threshold=config['pred_threshold'] - 0.05)
-        target_stixel = stixel_reader.extract_stixel_from_prediction(test_labels[pick])
-        prediction_stixel = stixel_reader.extract_stixel_from_prediction(output[pick])  # compare: output/ test_labels
+        target_stixel = stixel_reader.extract_stixel_from_prediction(test_labels)
+        stixel_reader.show_stixel(image, color=[0, 255, 0])
+        prediction_stixel = stixel_reader.extract_stixel_from_prediction(output)  # compare: output/ test_labels
+        stixel_reader.show_stixel(image, color=[255, 0, 0])
+        precision, recall = evaluate_stixels(prediction_stixel, target_stixel, iou_threshold=0.5)
 
-        thresholds = np.linspace(0.01, 1.0, num=100)
+
+        thresholds = np.linspace(0.1, 1.0, num=10)
         precision_values = []
         recall_values = []
         matches_collections = []
@@ -77,8 +84,9 @@ def main():
             recall_values.append(recall)
             matches_collections.append(best_matches)
             print(f'Precision: {precision}, Recall: {recall}')
-        img = draw_stixel_on_image_prcurve(image[pick],matches_collections[iou_pick], prediction_stixel)
+        img, img2 = draw_stixel_on_image_prcurve(image,matches_collections[iou_pick], prediction_stixel, target_stixel)
         img.show()
+        img2.show()
         plot_precision_recall_curve(recall_values, precision_values)
 
 

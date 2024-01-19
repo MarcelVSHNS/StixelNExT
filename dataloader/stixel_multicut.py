@@ -88,6 +88,7 @@ class MultiCutStixelData(Dataset):
                 for row in range(stixel['yT'], stixel['yB'] + 1):
                     stixel_mtx[0, int(row), int(stixel['x'])] = 1
                 stixel_mtx[1, int(stixel['yB']), int(stixel['x'])] = 1
+                stixel_mtx[1, int(stixel['yT']), int(stixel['x'])] = 1
         label = torch.from_numpy(stixel_mtx).to(torch.float32)
         return label
 
@@ -115,6 +116,11 @@ def overlay_original(matrix: np.array, original: np.array) -> np.array:
 
 def target_transform_gaussian_blur(y_target: torch.Tensor) -> torch.Tensor:
     stixel_mtx = y_target.numpy()
-    stixel_mtx[0] = overlay_original(cv2.GaussianBlur(stixel_mtx[0], (3, 7), sigmaX=1.5, sigmaY=1.2), stixel_mtx[0])
-    stixel_mtx[1] = overlay_original(cv2.GaussianBlur(stixel_mtx[1], (7, 3), sigmaX=2.0, sigmaY=1.0), stixel_mtx[1])
+    # Occupancy grid [0]
+    blur_occupancy = cv2.GaussianBlur(stixel_mtx[0], (11, 11), sigmaX=2.0, sigmaY=2.0)
+    stixel_mtx[0] = overlay_original(blur_occupancy, stixel_mtx[0])
+    # Cut matrix [1]
+    blur_cuts = cv2.GaussianBlur(stixel_mtx[1], (15, 15), sigmaX=1.0, sigmaY=1.0)
+    stixel_mtx[1] = overlay_original(blur_cuts, stixel_mtx[1])
+
     return torch.from_numpy(stixel_mtx).to(torch.float32)
