@@ -10,11 +10,11 @@ from torchsummary import summary
 from datetime import datetime
 import os
 import shutil
-from losses.stixel_loss import StixelLoss
+from losses.stixel_loss_endtoend import StixelLoss
 from models.ConvNeXt import ConvNeXt
 from engine import train_one_epoch, evaluate, EarlyStopping
 from dataloader.stixel_multicut_interpreter import StixelNExTInterpreter, show_pred_heatmap
-from dataloader.stixel_multicut import MultiCutStixelData, target_transform_gaussian_blur as target_transform
+from dataloader.stixel_multicut_endtoend import MultiCutStixelData, target_transform_gaussian_blur as target_transform
 if config['dataset'] == "kitti":
     from dataloader.stixel_multicut import feature_transform_resize as feature_transform
     config['grid_step'] = 4
@@ -68,9 +68,9 @@ def main():
                      depths=config['nn']['depths'],
                      widths=config['nn']['widths'],
                      drop_p=config['nn']['drop_p'],
-                     target_height=int(training_data.img_size['height'] / config['grid_step']),
-                     target_width=int(training_data.img_size['width'] / config['grid_step']),
-                     out_channels=2).to(device)
+                     target_height=42,
+                     target_width=240,
+                     out_channels=3).to(device)
 
     # Load Weights
     if config['load_weights']:
@@ -85,7 +85,7 @@ def main():
     loss_fn = StixelLoss(alpha=config['loss']['alpha'],
                          beta=config['loss']['beta'],
                          gamma=config['loss']['gamma'],
-                         threshold=config['pred_threshold'])
+                         delta=config['loss']['delta'])
 
     # Optimizer definition
     optimizer = torch.optim.Adam(model.parameters(), lr=config['learning_rate'])

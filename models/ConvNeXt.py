@@ -100,12 +100,12 @@ class ConvNextEncoder(nn.Module):
 class Head(nn.Module):
     def __init__(self, out_features, out_channels, target_height, target_width):
         super().__init__()
-        self.upsample = nn.Upsample(size=(target_height, target_width), mode='bilinear', align_corners=False)
+        self.downsample = nn.Upsample(size=(target_height, target_width), mode='bilinear', align_corners=False)
         self.decoder = nn.Conv2d(out_features, out_channels, kernel_size=1, stride=1)
         self.activation = nn.Sigmoid()
 
     def forward(self, x):
-        x = self.upsample(x)
+        x = self.downsample(x)
         x = self.decoder(x)
         return self.activation(x)
 
