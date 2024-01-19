@@ -35,6 +35,7 @@ overall_start_time = datetime.now()
 
 def main():
     test_dataloader = None
+    target_transform = None
     # Load data
     dataset_dir = os.path.join(config['data_path'], config['dataset'])
     # Training data
@@ -169,7 +170,6 @@ def main():
                 print("Saved PyTorch Model State to " + os.path.join(saved_models_path, weights_name))
             step_time = datetime.now() - overall_start_time
             print("Time elapsed: {}".format(step_time))
-
             # early stopping
             early_stopping.check_stop(test_error)
             if early_stopping.early_stop:

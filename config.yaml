@@ -3,13 +3,13 @@ data_path: /home/marcel/workspace/datasets
 # /home/marcel/workspace/datasets
 # C:\Users\marce\Documents\datasets
 dataset: ameise
-explore_data: true
-grid_step: 4
-img_height: 376
-img_width: 1248
+explore_data: false
+grid_step: 8
+img_height: null
+img_width: null
 inspect_model: true
 learning_rate: 0.001
-load_weights: true
+load_weights: false
 logging:
   activate: false
   project: Stixel-Multicut
@@ -36,8 +36,8 @@ resources:
   train_worker: 4
   val_worker: 2
 test_loss: true
-training: false
-weights_file: StixelNExT_dandy-butterfly-178_epoch-8_test-error-0.05427330359816551.pth
+training: true
+weights_file: StixelNExT_volcanic-spaceship-170_epoch-31_test-error-0.2544909715652466.pth
 early_stopping:
   tolerance: 16
   min_delta: 0.001
