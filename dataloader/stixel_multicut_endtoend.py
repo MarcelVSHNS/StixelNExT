@@ -11,6 +11,7 @@ from utilities.visualization import draw_stixels_on_image
 from dataloader.stixel_multicut_interpreter import Stixel
 import torch.nn.functional as F
 import yaml
+import time
 
 with open('config.yaml') as yamlfile:
     config = yaml.load(yamlfile, Loader=yaml.FullLoader)
@@ -94,6 +95,7 @@ class MultiCutStixelData(Dataset):
                         stixel_mtx[1, i, col] = stixel['yB']
                         # stixel_mtx[2, i, col] = stixel['depth']
                         stixel_mtx[2, i, col] = 1.0
+                        break
         label = torch.from_numpy(stixel_mtx).to(torch.float32)
         return label
 

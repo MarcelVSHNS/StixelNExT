@@ -1,5 +1,5 @@
 import torch
-
+import time
 
 # Training Function
 def train_one_epoch(dataloader, model, loss_fn, optimizer, device, writer=None) -> float:
@@ -22,6 +22,7 @@ def train_one_epoch(dataloader, model, loss_fn, optimizer, device, writer=None) 
         loss.backward()
         # write the weights to the NN
         optimizer.step()
+
         if batch_idx % 10 == 0:
             loss, current = loss.item(), batch_idx * len(samples)
             print(f"loss: {loss:>7f}  [{current:>5d}/{num_batches:>5d}]")
