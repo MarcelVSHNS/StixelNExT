@@ -117,10 +117,10 @@ def overlay_original(matrix: np.array, original: np.array) -> np.array:
 def target_transform_gaussian_blur(y_target: torch.Tensor) -> torch.Tensor:
     stixel_mtx = y_target.numpy()
     # Occupancy grid [0]
-    blur_occupancy = cv2.GaussianBlur(stixel_mtx[0], (11, 11), sigmaX=2.0, sigmaY=2.0)
+    blur_occupancy = cv2.GaussianBlur(stixel_mtx[0], (5, 7), sigmaX=1.42, sigmaY=1.21)
     stixel_mtx[0] = overlay_original(blur_occupancy, stixel_mtx[0])
     # Cut matrix [1]
-    blur_cuts = cv2.GaussianBlur(stixel_mtx[1], (15, 15), sigmaX=1.0, sigmaY=1.0)
+    blur_cuts = cv2.GaussianBlur(stixel_mtx[1], (9, 1), sigmaX=2.1, sigmaY=1.01)
     stixel_mtx[1] = overlay_original(blur_cuts, stixel_mtx[1])
 
     return torch.from_numpy(stixel_mtx).to(torch.float32)
