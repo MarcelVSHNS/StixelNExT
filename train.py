@@ -84,8 +84,7 @@ def main():
     # Loss function
     loss_fn = StixelLoss(alpha=config['loss']['alpha'],
                          beta=config['loss']['beta'],
-                         gamma=config['loss']['gamma'],
-                         threshold=config['pred_threshold'])
+                         gamma=config['loss']['gamma'])
 
     # Optimizer definition
     optimizer = torch.optim.Adam(model.parameters(), lr=config['learning_rate'])
@@ -112,8 +111,8 @@ def main():
     # Explore data
     if config['explore_data']:
         test_features, test_labels, image = testing_data[420]
-        #show_pred_heatmap(image, test_labels)
-        #show_pred_heatmap(image, test_labels, map=1)
+        show_pred_heatmap(image, test_labels)
+        show_pred_heatmap(image, test_labels, map=1)
         TEST = test_labels.numpy()
         result_interpreter = StixelNExTInterpreter(detection_threshold=config['pred_threshold'],
                                                    hysteresis_threshold=0.01)
