@@ -13,13 +13,20 @@ class StixelLoss(nn.Module):
         self.bce_loss = nn.BCELoss(reduction='mean')
 
     def forward(self, inputs, targets):
-        loss_bce = 0.0
-        loss_maximum_cuts = 0.0
+        loss_bce_occ = 0.0
+        loss_maximum_cuts_occ = 0.0
+        loss_bce_cut = 0.0
+        single_monitoring_dicts = []
         if self.alpha:
-            loss_bce = self.bce_loss(inputs, targets.squeeze(0))
-            loss_bce = self.alpha * loss_bce
+            loss_bce_occ = self.bce_loss(inputs[:, 0, :, :], targets[:, 0, :, :])
+            loss_bce_occ = self.alpha * loss_bce_occ
+            single_monitoring_dicts.append({'name': "bce_occupancy", 'value': loss_bce_occ})
         if self.beta:
-            loss_maximum_cuts = torch.mean(inputs[:, 1, :, :])
-            loss_maximum_cuts = self.beta * loss_maximum_cuts
-
-        return loss_bce + loss_maximum_cuts, loss_bce, loss_maximum_cuts
+            loss_maximum_cuts_occ = torch.mean(inputs[:, 0, :, :])
+            loss_maximum_cuts_occ = self.beta * loss_maximum_cuts_occ
+            single_monitoring_dicts.append({'name': "sum_occupancy", 'value': loss_maximum_cuts_occ})
+        if self.gamma:
+            loss_bce_cut = self.bce_loss(inputs[:, 1, :, :], targets[:, 1, :, :])
+            loss_bce_cut = self.alpha * loss_bce_cut
+            single_monitoring_dicts.append({'name': "bce_edges", 'value': loss_bce_cut})
+        return loss_bce_occ + loss_maximum_cuts_occ + loss_bce_cut, single_monitoring_dicts

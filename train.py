@@ -23,8 +23,8 @@ if config['dataset'] == "kitti":
 else:
     feature_transform = None
     config['grid_step'] = 8
-    config['img_height'] = None
-    config['img_width'] = None
+    config['img_height'] = 1200
+    config['img_width'] = 1920
 #with open('config.yaml', 'w') as file:
 #    yaml.dump(config, file, default_flow_style=False)
 
@@ -53,7 +53,7 @@ def main():
                                 num_workers=config['resources']['val_worker'], pin_memory=True, shuffle=False, drop_last=True)
 
     # Testing data
-    if config['explore_data'] or config['test_loss'] or config['inspect_model']:
+    if config['explore_data'] or config['test_loss']:
         testing_data = MultiCutStixelData(data_dir=dataset_dir,
                                           phase='testing',
                                           transform=feature_transform,
@@ -110,17 +110,14 @@ def main():
 
     # Explore data
     if config['explore_data']:
-        test_features, test_labels, image = testing_data[420]
-        show_pred_heatmap(image, test_labels)
-        show_pred_heatmap(image, test_labels, map=1)
-        TEST = test_labels.numpy()
-        result_interpreter = StixelNExTInterpreter(detection_threshold=config['pred_threshold'],
-                                                   hysteresis_threshold=0.01)
+        test_features, test_labels, image = testing_data[1040]
+        # show_pred_heatmap(image, test_labels)
+        # show_pred_heatmap(image, test_labels, map=1)
+        result_interpreter = StixelNExTInterpreter()
         # print ground truth
-        result_interpreter.extract_stixel_from_prediction(test_labels, detection_threshold=0.8,
-                                                          hysteresis_threshold=0.01)
-        #result_interpreter.show_stixel(image)
-        #result_interpreter.show_bottoms(image[pick])
+        # result_interpreter.extract_stixel_from_prediction(test_labels)
+        # result_interpreter.show_stixel(image, color=[0, 255, 0])
+        # result_interpreter.show_bottoms(image[pick])
         # print inference
         if config['load_weights']:
             sample = test_features.unsqueeze(0).to(device)
@@ -129,21 +126,17 @@ def main():
             output = output.squeeze()
             show_pred_heatmap(image, output)
             show_pred_heatmap(image, output, map=1)
-            result_interpreter.extract_stixel_from_prediction(output)
+            result_interpreter.extract_stixel_from_prediction(output, detection_threshold=0.5, hysteresis_threshold=0.02)
             result_interpreter.show_stixel(image)
             #result_interpreter.show_bottoms(image[pick])
 
     # Inspect model
     if config['inspect_model']:
-        test_features, test_labels, image = next(iter(test_dataloader))
-        height = image[0].shape[0]
-        width = image[0].shape[1]
+        height = int(config["img_height"])
+        width = int(config["img_width"])
         summary(model, (3, height, width))
-        data = test_features.to(device)
-        print("Input shape: " + str(data.shape))
-        print("Output shape: " + str(model(data).shape))
-        print("Running on " + device)
-        print("----------------------------------------------------------------")
+        if not config['test_loss']:
+            print("Running on " + device)
 
     # testing loss
     if config['test_loss']:
@@ -151,6 +144,10 @@ def main():
         data = test_features.to(device)
         output = model(data)
         target = test_labels.to(device)
+        print("Input shape: " + str(data.shape))
+        print("Output shape: " + str(output.shape))
+        print("Running on " + device)
+        print("----------------------------------------------------------------")
         print(loss_fn(output, target))
 
     # Training

@@ -14,7 +14,7 @@ def train_one_epoch(dataloader, model, loss_fn, optimizer, device, writer=None) 
         # Compute prediction a prediction
         outputs = model(samples)
         # Compute the error (loss) of that prediction [loss_fn(prediction, target)]
-        loss, loss_bce, loss_sum = loss_fn(outputs, targets)
+        loss, losses_monitoring = loss_fn(outputs, targets)
         train_loss += loss.item()
         # Backpropagation strategy/ optimization "zero_grad()"
         optimizer.zero_grad()
@@ -22,9 +22,10 @@ def train_one_epoch(dataloader, model, loss_fn, optimizer, device, writer=None) 
         loss.backward()
         # write the weights to the NN
         optimizer.step()
-        if batch_idx % 10 == 0:
+        if batch_idx % 100 == 0:
             loss, current = loss.item(), batch_idx * len(samples)
-            print(f"loss: {loss:>7f}  [{current:>5d}/{num_batches:>5d}], loss_bce: {loss_bce}, loss_sum: {loss_sum}")
+            losses_output = " ".join([f"{loss_mon['name']}: {loss_mon['value']:>7f}," for loss_mon in losses_monitoring])
+            print(f"loss: {loss:>7f}  [{current:>5d}/{num_batches:>5d}], \t {losses_output}")
     train_loss /= num_batches
     if writer:
         # Log the average loss for the epoch
@@ -42,7 +43,7 @@ def evaluate(dataloader, model, loss_fn, device, writer=None):
             samples = samples.to(device)
             targets = targets.to(device)
             outputs = model(samples)
-            loss, loss_bce, loss_sum = loss_fn(outputs, targets.squeeze(0))
+            loss, _ = loss_fn(outputs, targets.squeeze(0))
             eval_loss += loss
     eval_loss /= num_batches
     print(f"Test Error: \n Avg loss: {eval_loss:>8f} \n")

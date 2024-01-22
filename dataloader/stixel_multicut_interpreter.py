@@ -30,7 +30,7 @@ class Stixel:
         if self.bottom > 1200 or self.top > 1200 or self.column > 1920:
             print("nooo")
 
-    def cut_is_in_stixel(self, cut_row, tolerance=120):
+    def cut_is_in_stixel(self, cut_row, tolerance=50):
         cut_row = cut_row * self.grid_step
         if self.top + tolerance < cut_row < self.bottom - tolerance:
             return True
@@ -70,7 +70,7 @@ def extract_stixels(prediction, s1, s2=0.1):
             col_stixels.append(Stixel(col, stixel_start, num_rows - 1))
         # find cuts
         in_cut = False
-        offset = 0.3
+        offset = 0.00
         for row in range(num_rows):
             if in_cut:
                 if cut_mtx[row][col] < s1 - offset - s2:
@@ -100,7 +100,7 @@ def get_color_from_depth(depth, min_depth, max_depth):
     return tuple(int(c * 255) for c in color)
 
 
-def draw_stixels_on_image(image, stixels: List[Stixel], color=[255, 0, 0], stixel_width=8, alpha=0.3):
+def draw_stixels_on_image(image, stixels: List[Stixel], color=[255, 0, 0], stixel_width=8, alpha=0.1):
     image = np.array(image)
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     stixels.sort(key=lambda x: x.depth, reverse=True)
