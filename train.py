@@ -13,7 +13,8 @@ import shutil
 from losses.stixel_loss import StixelLoss
 from models.ConvNeXt import ConvNeXt
 from engine import train_one_epoch, evaluate, EarlyStopping
-from dataloader.stixel_multicut_interpreter import StixelNExTInterpreter, show_pred_heatmap
+from dataloader.stixel_multicut_interpreter import StixelNExTInterpreter, draw_heatmap, draw_stixels_on_image
+from utilities.visualization import create_composite_image
 from dataloader.stixel_multicut import MultiCutStixelData, target_transform_gaussian_blur as target_transform
 if config['dataset'] == "kitti":
     from dataloader.stixel_multicut import feature_transform_resize as feature_transform
@@ -57,7 +58,7 @@ def main():
         testing_data = MultiCutStixelData(data_dir=dataset_dir,
                                           phase='testing',
                                           transform=feature_transform,
-                                          target_transform=None,
+                                          target_transform=target_transform,
                                           return_original_image=True)
         test_dataloader = DataLoader(testing_data, batch_size=config['batch_size'],
                                      num_workers=config['resources']['test_worker'], pin_memory=True, shuffle=False,
@@ -110,25 +111,26 @@ def main():
 
     # Explore data
     if config['explore_data']:
-        test_features, test_labels, image = testing_data[1040]
-        # show_pred_heatmap(image, test_labels)
-        # show_pred_heatmap(image, test_labels, map=1)
         result_interpreter = StixelNExTInterpreter()
-        # print ground truth
-        # result_interpreter.extract_stixel_from_prediction(test_labels)
-        # result_interpreter.show_stixel(image, color=[0, 255, 0])
-        # result_interpreter.show_bottoms(image[pick])
-        # print inference
+        # Ground Truth
+        test_features, test_labels, image = testing_data[420]
+        gt_occ_hm = draw_heatmap(image, test_labels, mtx_map='occ')
+        gt_cut_hm = draw_heatmap(image, test_labels, mtx_map='cut')
+        gt_stixel = result_interpreter.extract_stixel_from_prediction(test_labels)
+        gt_stixel_img = draw_stixels_on_image(image, gt_stixel, color=[0, 255, 0])
+        # Prediction
         if config['load_weights']:
             sample = test_features.unsqueeze(0).to(device)
             output = model(sample)
             output = output.cpu().detach()
             output = output.squeeze()
-            show_pred_heatmap(image, output)
-            show_pred_heatmap(image, output, map=1)
-            result_interpreter.extract_stixel_from_prediction(output, detection_threshold=0.5, hysteresis_threshold=0.02)
-            result_interpreter.show_stixel(image)
-            #result_interpreter.show_bottoms(image[pick])
+            pred_occ_hm = draw_heatmap(image, output, mtx_map='occ')
+            pred_cut_hm = draw_heatmap(image, output, mtx_map='cut')
+            pred_stixel = result_interpreter.extract_stixel_from_prediction(output, detection_threshold=0.5)
+            pred_stixel_img = draw_stixels_on_image(image, pred_stixel, color=[255, 0, 0])
+            composite = create_composite_image([gt_occ_hm, pred_occ_hm, gt_cut_hm, pred_cut_hm, gt_stixel_img, pred_stixel_img])
+            comment = "gaussian-just-on-occ"
+            composite.save(f"results/{config['weights_file']}_loss-{config['loss']['alpha']}-{config['loss']['beta']}-{config['loss']['gamma']}-{config['loss']['delta']}_{comment}.png")
 
     # Inspect model
     if config['inspect_model']:

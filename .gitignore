@@ -158,10 +158,11 @@ saved_models/*
 !saved_models/.gitignore
 best_model_weights/*
 !best_model_weights/.gitignore
+results/*
+!results/.gitignore
 
 wandb
 data
 dataset
-results
 
 config.yaml

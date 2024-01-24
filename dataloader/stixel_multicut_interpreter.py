@@ -100,7 +100,7 @@ def get_color_from_depth(depth, min_depth, max_depth):
     return tuple(int(c * 255) for c in color)
 
 
-def draw_stixels_on_image(image, stixels: List[Stixel], color=[255, 0, 0], stixel_width=8, alpha=0.1):
+def draw_stixels_on_image(image, stixels: List[Stixel], color=[255, 0, 0], stixel_width=config['grid_step'], alpha=0.1):
     image = np.array(image)
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     stixels.sort(key=lambda x: x.depth, reverse=True)
@@ -132,9 +132,13 @@ def draw_bottom_lines(image, bottom_pts: np.array, threshold, grid_step=8, alpha
     return Image.fromarray(image)
 
 
-def draw_heatmap(image, prediction, stixel_width=config['grid_step'], map=0):
+def draw_heatmap(image, prediction, stixel_width=config['grid_step'], mtx_map='occ'):
+    if mtx_map == 'occ':
+        mtx_select = 0
+    else:
+        mtx_select = 1
     image = np.array(image)
-    prediction = prediction[map].numpy()
+    prediction = prediction[mtx_select].numpy()
     heatmap = cv2.resize(prediction, (image.shape[1] // stixel_width, image.shape[0] // stixel_width))
     heatmap_large = cv2.resize(heatmap, (int(image.shape[1]-stixel_width/2), int(image.shape[0]-stixel_width/2)))
     heatmap_centered = np.zeros((image.shape[0], image.shape[1]))

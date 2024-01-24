@@ -184,3 +184,26 @@ def draw_stixels_on_image(image_tensor, stixels: List[Stixel], stixel_width=conf
     normal_image = 255 - rgb_image
     return Image.fromarray(normal_image)
 
+
+def create_composite_image(images):
+    """
+    Create a composite image from a list of six images.
+    The images are arranged in a grid of 2 columns and 3 rows.
+    Args:
+    images (list): A list of six PIL Image objects.
+    Returns:
+    Image: A composite image.
+    """
+    # Ensure that there are exactly six images
+    if len(images) != 6:
+        raise ValueError("Please provide exactly six images.")
+    # Image dimensions (assuming all images have the same size)
+    image_width, image_height = config['img_width'], config['img_height']
+    # Create a new image for the 2x3 layout
+    composite = Image.new('RGB', (image_width * 2, image_height * 3))
+    # Paste each image into the composite image
+    for i, image in enumerate(images):
+        x = (i % 2) * image_width  # Column position
+        y = (i // 2) * image_height  # Row position
+        composite.paste(image, (x, y))
+    return composite
