@@ -54,7 +54,13 @@ class MultiCutStixelData(Dataset):
         if self.target_transform:
             target_labels = self.target_transform(target_labels)
         # data type needs to be like the NN layer like .to(torch.float32)
-        if self.return_original_image:
+        if self.return_original_image and self.return_name:
+            cv2_test_img = cv2.imread(img_path_full)
+            if cv2_test_img.shape != (self.img_size['height'], self.img_size['width'], 3):
+                cv2_test_img = cv2.resize(cv2_test_img, (self.img_size['width'], self.img_size['width']),
+                                          interpolation=cv2.INTER_LINEAR)
+            return feature_image, target_labels, cv2_test_img, self.sample_map[idx]
+        elif self.return_original_image:
             # a consistent batch stack is mandatory
             cv2_test_img = cv2.imread(img_path_full)
             if cv2_test_img.shape != (self.img_size['height'], self.img_size['width'], 3):

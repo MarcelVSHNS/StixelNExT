@@ -62,8 +62,7 @@ def main():
         # interpretation
         # show_pred_heatmap(image, output)
         # show_pred_heatmap(image, output, map=1)
-        stixel_reader = StixelNExTInterpreter(detection_threshold=config['pred_threshold'],
-                                                   hysteresis_threshold=config['pred_threshold'] - 0.05)
+        stixel_reader = StixelNExTInterpreter(detection_threshold=config['pred_threshold'])
         target_stixel = stixel_reader.extract_stixel_from_prediction(test_labels)
         stixel_reader.show_stixel(image, color=[0, 255, 0])
         prediction_stixel = stixel_reader.extract_stixel_from_prediction(output)  # compare: output/ test_labels
@@ -84,7 +83,7 @@ def main():
             recall_values.append(recall)
             matches_collections.append(best_matches)
             print(f'Precision: {precision}, Recall: {recall}')
-        img, img2 = draw_stixel_on_image_prcurve(image,matches_collections[iou_pick], prediction_stixel, target_stixel)
+        img, img2 = draw_stixel_on_image_prcurve(image, matches_collections[iou_pick], prediction_stixel, target_stixel)
         img.show()
         img2.show()
         plot_precision_recall_curve(recall_values, precision_values)

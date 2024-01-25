@@ -46,7 +46,7 @@ class Stixel:
         return upper_stixel, lower_stixel
 
 
-def extract_stixels(prediction, s1, s2=0.1):
+def extract_stixels(prediction, threshold):
     num_rows, num_cols = prediction[0].shape
     occupancy = prediction[0]
     cut_mtx = prediction[1]
@@ -59,26 +59,29 @@ def extract_stixels(prediction, s1, s2=0.1):
         stixel_start = 0
         for row in range(num_rows):
             if in_stixel:
-                if occupancy[row][col] < s1 - s2:
+                if occupancy[row][col] < threshold:
                     col_stixels.append(Stixel(col, stixel_start, row))
                     in_stixel = False
             else:
-                if occupancy[row][col] >= s1:
+                if occupancy[row][col] >= threshold:
                     in_stixel = True
                     stixel_start = row
         if in_stixel:
             col_stixels.append(Stixel(col, stixel_start, num_rows - 1))
         # find cuts
         in_cut = False
-        offset = 0.00
+        if threshold - 0.35 > 0:
+            offset = 0.35
+        else:
+            offset = threshold - 0.05
         for row in range(num_rows):
             if in_cut:
-                if cut_mtx[row][col] < s1 - offset - s2:
+                if cut_mtx[row][col] < threshold - offset:
                     cut_end = row
                     col_cuts.append((cut_start + cut_end) / 2)
                     in_cut = False
             else:
-                if cut_mtx[row][col] >= s1 - offset:
+                if cut_mtx[row][col] >= threshold - offset:
                     in_cut = True
                     cut_start = row
         for cut in col_cuts:
@@ -157,25 +160,21 @@ def show_pred_heatmap(pil_image, output, map=0):
 
 
 class StixelNExTInterpreter:
-    def __init__(self, detection_threshold=0.4, hysteresis_threshold=False):
-        self.s1 = detection_threshold
-        if hysteresis_threshold:
-            self.s2 = hysteresis_threshold
-        else:
-            self.s2 = detection_threshold - 0.05
+    def __init__(self, detection_threshold=0.4):
+        self.threshold = detection_threshold
         self.stixel_list = None
         self.bottom_pts = None
 
-    def extract_stixel_from_prediction(self, prediction, detection_threshold=None, hysteresis_threshold=None):
+    def extract_stixel_from_prediction(self, prediction, detection_threshold=None):
         prediction_mtx_numpy: np.array = prediction.numpy()
-        s1 = detection_threshold if detection_threshold else self.s1
-        s2 = hysteresis_threshold if hysteresis_threshold else self.s2
-        self.stixel_list = extract_stixels(prediction_mtx_numpy, s1=s1, s2=s2)
-        self.bottom_pts = prediction_mtx_numpy[1]
+        threshold = detection_threshold if detection_threshold else self.threshold
+        self.stixel_list = extract_stixels(prediction_mtx_numpy, threshold=threshold)
         return self.stixel_list
 
-    def show_stixel(self, pil_image, color=[255, 0, 0]):
-        image_with_stixel = draw_stixels_on_image(pil_image, self.stixel_list, color=color)
+    def show_stixel(self, pil_image, stixel_list=None, color=[255, 0, 0]):
+        if stixel_list is None:
+            stixel_list = self.stixel_list
+        image_with_stixel = draw_stixels_on_image(pil_image, stixel_list, color=color)
         image_with_stixel.show()
 
     def show_bottoms(self, image):
