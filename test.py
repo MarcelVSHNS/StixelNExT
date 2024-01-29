@@ -52,7 +52,7 @@ def main():
     # Investigate some selected data
     if config['explore_data']:
         iou_pick = 50   # in %
-        test_features, test_labels, image = testing_data[101]
+        test_features, test_labels, image = testing_data[302]
         # inference
 
         sample = test_features.unsqueeze(0).to(device)
