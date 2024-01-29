@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from torchsummary import summary
 from datetime import datetime
 import os
+import numpy as np
 import shutil
 from losses.stixel_loss import StixelLoss
 from models.ConvNeXt import ConvNeXt
@@ -61,7 +62,7 @@ def main():
                                           target_transform=target_transform,
                                           return_original_image=True)
         test_dataloader = DataLoader(testing_data, batch_size=config['batch_size'],
-                                     num_workers=config['resources']['test_worker'], pin_memory=True, shuffle=False,
+                                     num_workers=config['resources']['test_worker'], pin_memory=True, shuffle=True,
                                      drop_last=True)
 
     # Define Model
@@ -113,7 +114,9 @@ def main():
     if config['explore_data']:
         result_interpreter = StixelNExTInterpreter()
         # Ground Truth
-        test_features, test_labels, image = testing_data[420]
+        indx = np.random.randint(0, len(testing_data))
+        print(indx)
+        test_features, test_labels, image = testing_data[indx]
         gt_occ_hm = draw_heatmap(image, test_labels, mtx_map='occ')
         gt_cut_hm = draw_heatmap(image, test_labels, mtx_map='cut')
         gt_stixel = result_interpreter.extract_stixel_from_prediction(test_labels)

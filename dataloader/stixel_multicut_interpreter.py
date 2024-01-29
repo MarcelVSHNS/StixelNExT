@@ -30,7 +30,7 @@ class Stixel:
         if self.bottom > 1200 or self.top > 1200 or self.column > 1920:
             print("nooo")
 
-    def cut_is_in_stixel(self, cut_row, tolerance=50):
+    def cut_is_in_stixel(self, cut_row, tolerance=10):
         cut_row = cut_row * self.grid_step
         if self.top + tolerance < cut_row < self.bottom - tolerance:
             return True
@@ -70,8 +70,9 @@ def extract_stixels(prediction, threshold):
             col_stixels.append(Stixel(col, stixel_start, num_rows - 1))
         # find cuts
         in_cut = False
-        if threshold - 0.35 > 0:
-            offset = 0.35
+        thre = 0.3
+        if threshold - thre > 0:
+            offset = thre
         else:
             offset = threshold - 0.05
         for row in range(num_rows):
