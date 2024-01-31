@@ -5,6 +5,7 @@ with open('config.yaml') as yamlfile:
 
 import torch
 import wandb
+import numpy as np
 from torch.utils.data import DataLoader
 from torchsummary import summary
 from datetime import datetime
@@ -113,6 +114,8 @@ def main():
     if config['explore_data']:
         result_interpreter = StixelNExTInterpreter()
         # Ground Truth
+        idx = np.random.randint(0, len(testing_data))
+        print(idx)
         test_features, test_labels, image = testing_data[420]
         gt_occ_hm = draw_heatmap(image, test_labels, mtx_map='occ')
         gt_cut_hm = draw_heatmap(image, test_labels, mtx_map='cut')
@@ -126,7 +129,7 @@ def main():
             output = output.squeeze()
             pred_occ_hm = draw_heatmap(image, output, mtx_map='occ')
             pred_cut_hm = draw_heatmap(image, output, mtx_map='cut')
-            thres = 0.48
+            thres = 0.45
             pred_stixel = result_interpreter.extract_stixel_from_prediction(output, detection_threshold=thres)
             pred_stixel_img = draw_stixels_on_image(image, pred_stixel, color=[48, 213, 200])
             composite = create_composite_image([gt_occ_hm, pred_occ_hm, gt_cut_hm, pred_cut_hm, gt_stixel_img, pred_stixel_img])

@@ -1,6 +1,7 @@
 import numpy as np
 from typing import List
 import torch
+import numpy as np
 import cv2
 from PIL import Image
 import matplotlib.pyplot as plt
@@ -30,7 +31,8 @@ class Stixel:
         if self.bottom > 1200 or self.top > 1200 or self.column > 1920:
             print("nooo")
 
-    def cut_is_in_stixel(self, cut_row, tolerance=50):
+    def cut_is_in_stixel(self, cut_row, tol_factor=0.1):
+        tolerance = (self.bottom - self.bottom) * tol_factor
         cut_row = cut_row * self.grid_step
         if self.top + tolerance < cut_row < self.bottom - tolerance:
             return True
@@ -45,11 +47,28 @@ class Stixel:
         lower_stixel = Stixel(col, cut_row + 1, y_b)
         return upper_stixel, lower_stixel
 
+def math_calc(x, sigmoid=False, slope=3):
+    if sigmoid:
+        return 1 / (1 + np.exp(-10 * x + 2.5))
+        # return 1 / (1 + np.exp(-27 * x + 5))
+    else:
+        return np.tanh(slope * x)
+
+def normalize(mtx):
+    max_value = np.max(mtx)
+    #print(f"max: {max_value}")
+    #print(f"mean: {np.mean(mtx)}")
+    #print("------")
+    new_mtx = mtx/max_value
+    return new_mtx
+
 
 def extract_stixels(prediction, threshold):
     num_rows, num_cols = prediction[0].shape
-    occupancy = prediction[0]
-    cut_mtx = prediction[1]
+    occupancy = normalize(prediction[0])
+    #occupancy = math_calc(occupancy, slope=1.5)
+    cut_mtx = normalize(prediction[1])
+    cut_mtx = math_calc(cut_mtx)
 
     stixels = []
     for col in range(num_cols):
@@ -70,18 +89,20 @@ def extract_stixels(prediction, threshold):
             col_stixels.append(Stixel(col, stixel_start, num_rows - 1))
         # find cuts
         in_cut = False
+        """
         if threshold - 0.35 > 0:
             offset = 0.35
         else:
             offset = threshold - 0.05
+        """
         for row in range(num_rows):
             if in_cut:
-                if cut_mtx[row][col] < threshold - offset:
+                if cut_mtx[row][col] < threshold:
                     cut_end = row
                     col_cuts.append((cut_start + cut_end) / 2)
                     in_cut = False
             else:
-                if cut_mtx[row][col] >= threshold - offset:
+                if cut_mtx[row][col] >= threshold:
                     in_cut = True
                     cut_start = row
         for cut in col_cuts:
@@ -137,11 +158,13 @@ def draw_bottom_lines(image, bottom_pts: np.array, threshold, grid_step=8, alpha
 
 def draw_heatmap(image, prediction, stixel_width=config['grid_step'], mtx_map='occ'):
     if mtx_map == 'occ':
-        mtx_select = 0
+        prediction = normalize(prediction[0].numpy())
+        #prediction = math_calc(prediction, slope=1.5)
     else:
-        mtx_select = 1
+        prediction = normalize(prediction[1].numpy())
+        prediction = math_calc(prediction)
     image = np.array(image)
-    prediction = prediction[mtx_select].numpy()
+    #prediction = prediction[mtx_select].numpy()
     heatmap = cv2.resize(prediction, (image.shape[1] // stixel_width, image.shape[0] // stixel_width))
     heatmap_large = cv2.resize(heatmap, (int(image.shape[1]-stixel_width/2), int(image.shape[0]-stixel_width/2)))
     heatmap_centered = np.zeros((image.shape[0], image.shape[1]))
