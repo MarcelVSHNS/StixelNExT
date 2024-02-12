@@ -13,6 +13,7 @@ import yaml
 with open('config.yaml') as yamlfile:
     config = yaml.load(yamlfile, Loader=yaml.FullLoader)
 
+
 def show_meta_data(x_feature, y_target, idx=0):
     print(f"Feature batch shape: {x_feature.size()}")
     print(f"Labels batch shape: {y_target.size()}")
