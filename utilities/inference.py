@@ -14,7 +14,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 def main():
-    frame_size = (1920, 1080)
+    frame_size = (1920, 1200)
     video_path = 'input_video.mp4'
     output_path = 'output_video.mp4'
     color = [48, 213, 200]

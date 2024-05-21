@@ -70,8 +70,8 @@ def main():
                      depths=config['nn']['depths'],
                      widths=config['nn']['widths'],
                      drop_p=config['nn']['drop_p'],
-                     target_height=int(training_data.img_size['height'] / config['grid_step']),
-                     target_width=int(training_data.img_size['width'] / config['grid_step']),
+                     target_height=training_data.img_size['height'] // config['grid_step'],
+                     target_width=training_data.img_size['width'] // config['grid_step'],
                      out_channels=2).to(device)
 
     # Load Weights
@@ -112,29 +112,30 @@ def main():
 
     # Explore data
     if config['explore_data']:
-        result_interpreter = StixelNExTInterpreter()
-        # Ground Truth
-        idx = np.random.randint(0, len(testing_data))
-        print(idx)
-        test_features, test_labels, image = testing_data[420]
-        gt_occ_hm = draw_heatmap(image, test_labels, mtx_map='occ')
-        gt_cut_hm = draw_heatmap(image, test_labels, mtx_map='cut')
-        gt_stixel = result_interpreter.extract_stixel_from_prediction(test_labels)
-        gt_stixel_img = draw_stixels_on_image(image, gt_stixel, color=[0, 255, 0])
-        # Prediction
-        if config['load_weights']:
-            sample = test_features.unsqueeze(0).to(device)
-            output = model(sample)
-            output = output.cpu().detach()
-            output = output.squeeze()
-            pred_occ_hm = draw_heatmap(image, output, mtx_map='occ')
-            pred_cut_hm = draw_heatmap(image, output, mtx_map='cut')
-            thres = 0.45
-            pred_stixel = result_interpreter.extract_stixel_from_prediction(output, detection_threshold=thres)
-            pred_stixel_img = draw_stixels_on_image(image, pred_stixel, color=[48, 213, 200])
-            composite = create_composite_image([gt_occ_hm, pred_occ_hm, gt_cut_hm, pred_cut_hm, gt_stixel_img, pred_stixel_img])
-            comment = ""
-            composite.save(f"results/{config['weights_file']}_loss-{config['loss']['alpha']}-{config['loss']['beta']}-{config['loss']['gamma']}-{config['loss']['delta']}_{comment}.png")
+        for i in range(1):
+            result_interpreter = StixelNExTInterpreter()
+            # Ground Truth
+            idx = np.random.randint(0, len(testing_data))
+            print(idx)
+            test_features, test_labels, image = testing_data[idx]
+            gt_occ_hm = draw_heatmap(image, test_labels, mtx_map='occ')
+            gt_cut_hm = draw_heatmap(image, test_labels, mtx_map='cut')
+            gt_stixel = result_interpreter.extract_stixel_from_prediction(test_labels)
+            gt_stixel_img = draw_stixels_on_image(image, gt_stixel, color=[0, 255, 0])
+            # Prediction
+            if config['load_weights']:
+                sample = test_features.unsqueeze(0).to(device)
+                output = model(sample)
+                output = output.cpu().detach()
+                output = output.squeeze()
+                pred_occ_hm = draw_heatmap(image, output, mtx_map='occ')
+                pred_cut_hm = draw_heatmap(image, output, mtx_map='cut')
+                thres = config['pred_threshold']
+                pred_stixel = result_interpreter.extract_stixel_from_prediction(output, detection_threshold=thres)
+                pred_stixel_img = draw_stixels_on_image(image, pred_stixel, color=[48, 213, 200])
+                composite = create_composite_image([gt_occ_hm, pred_occ_hm, gt_cut_hm, pred_cut_hm, gt_stixel_img, pred_stixel_img])
+                comment = ""
+                composite.save(f"results/{config['dataset']}/{config['weights_file']}_loss-{config['loss']['alpha']}-{config['loss']['beta']}-{config['loss']['gamma']}-{config['loss']['delta']}_{comment}_id-{idx}.png")
 
     # Inspect model
     if config['inspect_model']:

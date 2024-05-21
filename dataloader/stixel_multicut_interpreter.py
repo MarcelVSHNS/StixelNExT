@@ -31,8 +31,7 @@ class Stixel:
         if self.bottom > 1200 or self.top > 1200 or self.column > 1920:
             print("nooo")
 
-    def cut_is_in_stixel(self, cut_row, tol_factor=0.1):
-        tolerance = (self.bottom - self.bottom) * tol_factor
+    def cut_is_in_stixel(self, cut_row, tolerance=42):
         cut_row = cut_row * self.grid_step
         if self.top + tolerance < cut_row < self.bottom - tolerance:
             return True
@@ -47,7 +46,7 @@ class Stixel:
         lower_stixel = Stixel(col, cut_row + 1, y_b)
         return upper_stixel, lower_stixel
 
-def math_calc(x, sigmoid=False, slope=3):
+def math_calc(x, sigmoid=False, slope=2):
     if sigmoid:
         return 1 / (1 + np.exp(-10 * x + 2.5))
         # return 1 / (1 + np.exp(-27 * x + 5))

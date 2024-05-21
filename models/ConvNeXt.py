@@ -7,16 +7,16 @@ import torch
 
 class ConvNextStem(nn.Sequential):
     def __init__(self, in_features: int, out_features: int):
-        super().__init__(nn.Conv2d(in_features, out_features, kernel_size=4, stride=4), nn.BatchNorm2d(out_features))
-
+        super().__init__(nn.Conv2d(in_features, out_features, kernel_size=4, stride=4), nn.BatchNorm2d(out_features))   # 1.conv2d
+                                                                                                                        # 2.BatchNorm2d
 
 class ConvNexStage(nn.Sequential):
     def __init__(self, in_features: int, out_features: int, depth: int, **kwargs):
         super().__init__(
             # add the downsampler
             nn.Sequential(
-                nn.GroupNorm(num_groups=1, num_channels=in_features),
-                nn.Conv2d(in_features, out_features, kernel_size=2, stride=2)),
+                nn.GroupNorm(num_groups=1, num_channels=in_features),                                                   # 3.groupnorm
+                nn.Conv2d(in_features, out_features, kernel_size=2, stride=2)),                                         # 4. conv2d
             *[
                 BottleNeckBlock(out_features, out_features, **kwargs)
                 for _ in range(depth)
@@ -51,17 +51,17 @@ class BottleNeckBlock(nn.Module):
         expanded_features = out_features * expansion
         self.block = nn.Sequential(
             # narrow -> wide (with depth-wise and bigger kernel)
-            nn.Conv2d(in_features, in_features, kernel_size=7, padding=3, bias=False, groups=in_features),
+            nn.Conv2d(in_features, in_features, kernel_size=7, padding=3, bias=False, groups=in_features),              # 5. conv
             # GroupNorm with num_groups=1 is the same as LayerNorm but works for 2D data
-            nn.GroupNorm(num_groups=1, num_channels=in_features),
+            nn.GroupNorm(num_groups=1, num_channels=in_features),                                                       # 6. groupnorm
             # wide -> wide
-            nn.Conv2d(in_features, expanded_features, kernel_size=1),
-            nn.GELU(),
+            nn.Conv2d(in_features, expanded_features, kernel_size=1),                                                   # 7. conv
+            nn.GELU(),                                                                                                  # 8 gelu
             # wide -> narrow
-            nn.Conv2d(expanded_features, out_features, kernel_size=1),
+            nn.Conv2d(expanded_features, out_features, kernel_size=1),                                                  # 9.conv
         )
-        self.layer_scaler = LayerScaler(layer_scaler_init_value, out_features)
-        self.drop_path = StochasticDepth(drop_p, mode="batch")
+        self.layer_scaler = LayerScaler(layer_scaler_init_value, out_features)                                          # 10. layerscaler
+        self.drop_path = StochasticDepth(drop_p, mode="batch")                                                          # 11. stochasticdepth
 
     def forward(self, x: Tensor) -> Tensor:
         res = x
