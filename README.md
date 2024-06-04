@@ -15,7 +15,7 @@ If you find our work useful in your research please consider citing our paper:
                Ait-Aider, Omar  and
                Mezouar, Youcef and
                Enzweiler, Markus},
-  booktitle = {2023 IEEE Intelligent Vehicles Symposium (IV)},
+  booktitle = {2024 IEEE Intelligent Vehicles Symposium (IV)},
   month = {June},
 year = {2024}
 }
