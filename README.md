@@ -1,4 +1,4 @@
-# [StixelNExT, 2D](https://ieeexplore.ieee.org/Xplore/home.jsp)
+# [StixelNExT, 2D](https://ieeexplore.ieee.org/Xplore/home.jsp), Documemtation will be completed until 30.6.24
 
 Official PyTorch implementation of **StixelNExT**, from the following paper:
 
