@@ -54,17 +54,6 @@ def main():
     val_dataloader = DataLoader(validation_data, batch_size=config['batch_size'],
                                 num_workers=config['resources']['val_worker'], pin_memory=True, shuffle=False, drop_last=True)
 
-    # Testing data
-    if config['explore_data'] or config['test_loss']:
-        testing_data = MultiCutStixelData(data_dir=dataset_dir,
-                                          phase='testing',
-                                          transform=feature_transform,
-                                          target_transform=target_transform,
-                                          return_original_image=True)
-        test_dataloader = DataLoader(testing_data, batch_size=config['batch_size'],
-                                     num_workers=config['resources']['test_worker'], pin_memory=True, shuffle=False,
-                                     drop_last=True)
-
     # Define Model
     model = ConvNeXt(stem_features=config['nn']['stem_features'],
                      depths=config['nn']['depths'],
@@ -109,33 +98,6 @@ def main():
         wandb_logger.watch(model)
     else:
         wandb_logger = None
-
-    # Explore data
-    if config['explore_data']:
-        for i in range(1):
-            result_interpreter = StixelNExTInterpreter()
-            # Ground Truth
-            idx = np.random.randint(0, len(testing_data))
-            print(idx)
-            test_features, test_labels, image = testing_data[idx]
-            gt_occ_hm = draw_heatmap(image, test_labels, mtx_map='occ')
-            gt_cut_hm = draw_heatmap(image, test_labels, mtx_map='cut')
-            gt_stixel = result_interpreter.extract_stixel_from_prediction(test_labels)
-            gt_stixel_img = draw_stixels_on_image(image, gt_stixel, color=[0, 255, 0])
-            # Prediction
-            if config['load_weights']:
-                sample = test_features.unsqueeze(0).to(device)
-                output = model(sample)
-                output = output.cpu().detach()
-                output = output.squeeze()
-                pred_occ_hm = draw_heatmap(image, output, mtx_map='occ')
-                pred_cut_hm = draw_heatmap(image, output, mtx_map='cut')
-                thres = config['pred_threshold']
-                pred_stixel = result_interpreter.extract_stixel_from_prediction(output, detection_threshold=thres)
-                pred_stixel_img = draw_stixels_on_image(image, pred_stixel, color=[48, 213, 200])
-                composite = create_composite_image([gt_occ_hm, pred_occ_hm, gt_cut_hm, pred_cut_hm, gt_stixel_img, pred_stixel_img])
-                comment = ""
-                composite.save(f"results/{config['dataset']}/{config['weights_file']}_loss-{config['loss']['alpha']}-{config['loss']['beta']}-{config['loss']['gamma']}-{config['loss']['delta']}_{comment}_id-{idx}.png")
 
     # Inspect model
     if config['inspect_model']:

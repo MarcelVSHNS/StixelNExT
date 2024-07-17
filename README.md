@@ -20,6 +20,10 @@ If you find our work useful in your research please consider citing our paper:
 year = {2024}
 }
 ```
+![Sample StixelNExT result](/docs/StixelNExT_result.png)
+StixelNExT is a low-weight CNN with roughly 1.5 mio. parameters to segment obstacles in the 2D plane and divide them into 
+multiple objects. It is trainable within ~10 epochs without pre-trained weights.
+
 
 ## ⚙️ Setup
 
@@ -52,7 +56,7 @@ a LiDAR and the corresponding projection:
 
 ### KITTI Training Data
 We also provide an already generated dataset, based on the public available KITTI dataset. It can be downloaded
-[here](https://bwsyncandshare.kit.edu/s/FL4BDGe7FM2NjJK) (??? GB).
+[here](https://bwsyncandshare.kit.edu/s/FL4BDGe7FM2NjJK) (35,4 GB).
 
 ## 🏃 Training
 We used [Weights & Biases](https://wandb.ai/site) for organizing our trainings, so check your W&B python
