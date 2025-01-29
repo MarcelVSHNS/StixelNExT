@@ -104,7 +104,7 @@ def get_color_from_depth(depth, min_depth, max_depth):
     return tuple(int(c * 255) for c in color)
 
 
-def draw_stixels_on_image(image, stixels: List[Stixel], color=[255, 0, 0], stixel_width=config['grid_step'], alpha=0.1):
+def draw_stixels_on_image(image, stixels: List[Stixel], color=[189, 195, 83], stixel_width=config['grid_step'], alpha=0.1):
     image = np.array(image)
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     stixels.sort(key=lambda x: x.depth, reverse=True)
@@ -118,8 +118,8 @@ def draw_stixels_on_image(image, stixels: List[Stixel], color=[255, 0, 0], stixe
         overlay = image.copy()
         cv2.rectangle(overlay, (top_left_x, top_left_y), (bottom_right_x, bottom_left_y), color, -1)
         cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0, image)
-        cv2.rectangle(image, (top_left_x, top_left_y), (bottom_right_x, bottom_left_y), color, 2)
-    return Image.fromarray(image)
+        cv2.rectangle(image, (top_left_x, top_left_y), (bottom_right_x, bottom_left_y), color, 1)
+    return Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
 
 
 def draw_bottom_lines(image, bottom_pts: np.array, threshold, grid_step=8, alpha=0.1):
@@ -161,7 +161,7 @@ def show_pred_heatmap(pil_image, output, map=0):
 
 
 class StixelNExTInterpreter:
-    def __init__(self, detection_threshold=0.4):
+    def __init__(self, detection_threshold=0.58):
         self.threshold = detection_threshold
         self.stixel_list = None
         self.bottom_pts = None

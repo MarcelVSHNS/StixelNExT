@@ -130,8 +130,8 @@ class Head(nn.Module):
 
 
 class ConvNeXt(nn.Module):
-    def __init__(self, in_channels=3, stem_features=64, depths=[3, 3, 9, 3], widths=[96, 192, 384, 768],
-                 drop_p: float = .0, out_channels: int = 2, target_height: int = 150, target_width: int = 240):
+    def __init__(self, in_channels=3, stem_features=64, depths=[6, 3], widths=[96, 192, 384, 768],
+                 drop_p: float = 0.0, out_channels: int = 2, target_height: int = 94, target_width: int = 312):
         super().__init__()
         self.encoder = ConvNextEncoder(in_channels, stem_features, depths, widths, drop_p)
         self.decoder = Head(self.encoder.stages[-1].outfeatures, out_channels, target_height, target_width)

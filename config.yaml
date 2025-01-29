@@ -1,0 +1,42 @@
+batch_size: 16
+data_path: /home/marcel/workspace/datasets/kitti/StixelNExT_2d/automatic_ground_truth_stixel_kitti
+dataset: kitti
+grid_step: 4
+img_height: 376
+img_width: 1248
+num_epochs: 25
+learning_rate: 0.001
+training: True
+explore_data: False
+test_loss: False
+inspect_model: True
+resources:
+  train_worker: 10
+  val_worker: 5
+  test_worker: 2
+load_weights: False
+weights_file: StixelNExT_legendary-mountain-17_epoch-6_loss-56299.47203177295.pth
+logging:
+  activate: False
+  project: Stixel-Multicut
+loss:
+  alpha: 1.0
+  beta: 0.7
+  gamma: 1.0
+  delta: false
+nn:
+  depths:
+    - 6
+    - 3
+  drop_p: 0.0
+  stem_features: 64
+  widths:
+    - 96
+    - 192
+    - 384
+    - 768
+pred_threshold: 0.58
+max_dist: 45
+early_stopping:
+  tolerance: 8
+  min_delta: 0.0001

@@ -175,6 +175,11 @@ def main():
                 torch.save(model.state_dict(), os.path.join(saved_models_path, weights_name))
                 checkpoints.append({'checkpoint': weights_name, 'test-error': test_error})
                 print("Saved PyTorch Model State to " + os.path.join(saved_models_path, weights_name))
+            else:
+                saved_models_path = os.path.join('saved_models', config['dataset'])
+                os.makedirs(saved_models_path, exist_ok=True)
+                weights_name = f"StixelNExT_epoch-{epoch}_test-error-{test_error}.pth"
+                torch.save(model.state_dict(), os.path.join(saved_models_path, weights_name))
             step_time = datetime.now() - overall_start_time
             print("Time elapsed: {}".format(step_time))
 

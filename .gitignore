@@ -153,16 +153,6 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
-
-saved_models/*
-!saved_models/.gitignore
-best_model_weights/*
-!best_model_weights/.gitignore
-results/*
-!results/.gitignore
-
 wandb
 data
 dataset
-
-config.yaml
