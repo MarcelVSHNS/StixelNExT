@@ -23,7 +23,7 @@ If you find our work useful in your research please consider citing our paper:
   doi={10.1109/IV55156.2024.10588680}
 }
 ```
-![Sample StixelNExT result](/docs/StixelNExT_result.png)
+![Sample StixelNExT result](/docs/multistixel.png)
 StixelNExT is a low-weight CNN with roughly 1.5 mio. parameters to segment obstacles in the 2D plane and divide them into 
 multiple objects. It is trainable within ~10 epochs without pre-trained weights.
 
